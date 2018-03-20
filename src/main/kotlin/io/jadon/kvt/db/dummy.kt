@@ -65,7 +65,12 @@ class DummyDatabase : Database {
     }
 
     override fun searchSongs(name: String): Future<List<Int>> {
-        return threadPool.submit<List<Int>> { listOf() }
+        return threadPool.submit<List<Int>> {
+            songs
+                    .mapIndexed { index, song -> Pair(index, song) }
+                    .filter { it.second.name.contains(name, ignoreCase = true) }
+                    .map { it.first }
+        }
     }
 
     override fun getArtist(id: Int): Future<Artist?> {
@@ -73,7 +78,12 @@ class DummyDatabase : Database {
     }
 
     override fun searchArtists(name: String): Future<List<Int>> {
-        return threadPool.submit<List<Int>> { listOf() }
+        return threadPool.submit<List<Int>> {
+            artists
+                    .mapIndexed { index, artist -> Pair(index, artist) }
+                    .filter { it.second.name.contains(name, ignoreCase = true) }
+                    .map { it.first }
+        }
     }
 
     override fun getAlbum(id: Int): Future<Album?> {
@@ -81,6 +91,11 @@ class DummyDatabase : Database {
     }
 
     override fun searchAlbums(name: String): Future<List<Int>> {
-        return threadPool.submit<List<Int>> { listOf() }
+        return threadPool.submit<List<Int>> {
+            albums
+                    .mapIndexed { index, album -> Pair(index, album) }
+                    .filter { it.second.name.contains(name, ignoreCase = true) }
+                    .map { it.first }
+        }
     }
 }

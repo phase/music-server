@@ -5,12 +5,13 @@ import io.jadon.kvt.model.Entity
 import io.vertx.core.http.HttpMethod
 import io.vertx.core.http.HttpServer
 import io.vertx.core.json.Json
+import io.vertx.core.json.JsonArray
 import io.vertx.core.json.JsonObject
 import io.vertx.ext.web.Router
 
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.RUNTIME)
-annotation class Path(val path: String, val method: HttpMethod)
+annotation class Path(val path: String, val method: HttpMethod = HttpMethod.GET)
 
 open class RestApi(private val version: Int) {
 
@@ -58,7 +59,8 @@ open class RestApi(private val version: Int) {
                     val obj = method.invoke(this, *parameters.toTypedArray())
                     if (obj is JsonObject) {
                         routingContext.response().putHeader("content-type", "text/json")
-                        routingContext.response().end(obj.encode())
+                        // TODO: Prod - obj.encode()
+                        routingContext.response().end(obj.encodePrettily())
                     } else {
                         throw RuntimeException("Method didn't return a JsonObject! ($obj)")
                     }
@@ -79,27 +81,37 @@ object RestApiV1 : RestApi(1) {
     }()
 
     private fun encode(obj: Entity?): JsonObject = if (obj == null) errorJson else JsonObject(Json.encode(obj))
-
+//    private fun encode(objs: List<Entity>): JsonArray = JsonArray(objs.map { Json.encode(it) })
 
     // song paths
 
-    @Path("/song/:id", HttpMethod.GET)
+    @Path("/song/:id")
     fun song(id: Int): JsonObject {
         return encode(Kvt.DB.getSong(id).get())
     }
 
     // artist paths
 
-    @Path("/artist/:id", HttpMethod.GET)
+    @Path("/artist/:id")
     fun artist(id: Int): JsonObject {
         return encode(Kvt.DB.getArtist(id).get())
     }
 
     // album paths
 
-    @Path("/album/:id", HttpMethod.GET)
+    @Path("/album/:id")
     fun album(id: Int): JsonObject {
         return encode(Kvt.DB.getAlbum(id).get())
+    }
+
+    @Path("/search/:q")
+    fun search(q: String): JsonObject {
+        val o = JsonObject()
+        o.put("search", q)
+        o.put("artistIds", JsonArray(Kvt.DB.searchArtists(q).get()))
+        o.put("songIds", JsonArray(Kvt.DB.searchSongs(q).get()))
+        o.put("albumIds", JsonArray(Kvt.DB.searchAlbums(q).get()))
+        return o
     }
 
 }
