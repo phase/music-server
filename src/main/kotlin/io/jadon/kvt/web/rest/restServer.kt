@@ -7,10 +7,10 @@ import io.vertx.core.json.JsonObject
 import io.vertx.ext.web.Router
 
 @Target(AnnotationTarget.FUNCTION)
-@Retention(AnnotationRetention.SOURCE)
+@Retention(AnnotationRetention.RUNTIME)
 annotation class Path(val path: String, val method: HttpMethod)
 
-object RestApi {
+open class RestApi(private val version: Int) {
 
     lateinit var server: HttpServer
     lateinit var router: Router
@@ -20,23 +20,29 @@ object RestApi {
         if (initialized) {
             throw RuntimeException("RestApi was already initialized!")
         }
+        if (this.javaClass.name == RestApi::class.java.name) {
+            throw RuntimeException("You need to implement RestApi with your JSON Paths!")
+        }
+
         server = Kvt.vertx.createHttpServer()
         router = Router.router(Kvt.vertx)
         initialized = true
 
         generatePaths()
+        server.requestHandler({ router.accept(it) }).listen(8080)
+        println("Server started")
     }
 
     private fun generatePaths() {
         // get paths through reflection
         this.javaClass.methods.filter { it.isAnnotationPresent(Path::class.java) }.forEach { method ->
             val annotation = method.getAnnotation(Path::class.java)
-            val route = router.route(annotation.method, annotation.path)
-            val parameters = mutableListOf<>()
+            val route = router.route(annotation.method, "/api/v$version" + annotation.path)
 
             route.handler { routingContext ->
-                routingContext.request().params().forEach { routingParam ->
-                    val methodParam = method.parameters.find { it.name == routingParam.key }
+                val parameters = mutableListOf<Any>()
+                routingContext.request().params().forEachIndexed { i, routingParam ->
+                    val methodParam = method.parameters.getOrNull(i)
                     if (methodParam == null) {
                         throw RuntimeException("Called ${method.name} with ${routingParam.key}=${routingParam.value}")
                     } else {
@@ -47,8 +53,9 @@ object RestApi {
                     }
                 }
                 if (parameters.size == method.parameterCount) {
-                    val obj = method.invoke(this, parameters)
+                    val obj = method.invoke(this, *parameters.toTypedArray())
                     if (obj is JsonObject) {
+                        routingContext.response().putHeader("content-type", "text/json")
                         routingContext.response().end(obj.encode())
                     } else {
                         throw RuntimeException("Method didn't return a JsonObject! ($obj)")
@@ -59,10 +66,13 @@ object RestApi {
             }
         }
     }
+}
 
+object RestApiV1 : RestApi(1) {
     @Path("/song/:id", HttpMethod.GET)
-    private fun song(id: Int): JsonObject {
-        return JsonObject()
+    fun song(id: Int): JsonObject {
+        val j = JsonObject()
+        j.put("id", id)
+        return j
     }
-
 }
