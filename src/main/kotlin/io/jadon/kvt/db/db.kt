@@ -1,9 +1,10 @@
 package io.jadon.kvt.db
 
-import io.jadon.kvt.model.*
-import java.util.concurrent.Future
-import org.jetbrains.exposed.sql.transactions.transaction
+import io.jadon.kvt.model.Album
+import io.jadon.kvt.model.Artist
+import io.jadon.kvt.model.Song
 import java.util.concurrent.Executors
+import java.util.concurrent.Future
 import org.jetbrains.exposed.sql.Database as SQLDatabase
 
 interface Database {
@@ -28,109 +29,43 @@ interface Database {
 
 }
 
-class PostgreSQLDatabase(
-        host: String,
-        port: Int = 5432,
-        database: String,
-        user: String,
-        password: String
-) : Database {
+class DummyDatabase : Database {
 
     private val threadPool = Executors.newFixedThreadPool(3)
 
-    init {
-        val connectionString = "jdbc:postgresql://$host:$port/$database?user=$user&password=$password"
-        SQLDatabase.connect(connectionString, driver = "org.postgresql.Driver")
-    }
-
-    // Song functions
-
     override fun getSong(id: Int): Future<Song?> {
-        return threadPool.submit<Song?> {
-            transaction {
-                Song.findById(id)
-            }
-        }
+        return threadPool.submit<Song?> { null }
     }
 
     override fun getSongs(ids: List<Int>): Future<List<Song>> {
-        return threadPool.submit<List<Song>> {
-            transaction {
-                Song.find {
-                    Songs.id inList ids
-                }
-            }.toList()
-        }
+        return threadPool.submit<List<Song>> { listOf() }
     }
 
     override fun searchSongs(name: String): Future<List<Song>> {
-        return threadPool.submit<List<Song>> {
-            transaction {
-                Song.find {
-                    Songs.name like name
-                }
-            }.toList()
-        }
+        return threadPool.submit<List<Song>> { listOf() }
     }
 
-    // Artist functions
-
     override fun getArtist(id: Int): Future<Artist?> {
-        return threadPool.submit<Artist?> {
-            transaction {
-                Artist.findById(id)
-            }
-        }
+        return threadPool.submit<Artist?> { null }
     }
 
     override fun getArtists(ids: List<Int>): Future<List<Artist>> {
-        return threadPool.submit<List<Artist>> {
-            transaction {
-                Artist.find {
-                    Artists.id inList ids
-                }
-            }.toList()
-        }
+        return threadPool.submit<List<Artist>> { listOf() }
     }
 
     override fun searchArtists(name: String): Future<List<Artist>> {
-        return threadPool.submit<List<Artist>> {
-            transaction {
-                Artist.find {
-                    Artists.name like name
-                }
-            }.toList()
-        }
+        return threadPool.submit<List<Artist>> { listOf() }
     }
 
-    // Album functions
-
     override fun getAlbum(id: Int): Future<Album?> {
-        return threadPool.submit<Album?> {
-            transaction {
-                Album.findById(id)
-            }
-        }
+        return threadPool.submit<Album?> { null }
     }
 
     override fun getAlbums(ids: List<Int>): Future<List<Album>> {
-        return threadPool.submit<List<Album>> {
-            transaction {
-                Album.find {
-                    Albums.id inList ids
-                }
-            }.toList()
-        }
+        return threadPool.submit<List<Album>> { listOf() }
     }
 
     override fun searchAlbums(name: String): Future<List<Album>> {
-        return threadPool.submit<List<Album>> {
-            transaction {
-                Album.find {
-                    Albums.name like name
-                }
-            }.toList()
-        }
+        return threadPool.submit<List<Album>> { listOf() }
     }
-
 }

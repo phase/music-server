@@ -24,8 +24,8 @@ open class RestApi(private val version: Int) {
             throw RuntimeException("You need to implement RestApi with your JSON Paths!")
         }
 
-        server = Kvt.vertx.createHttpServer()
-        router = Router.router(Kvt.vertx)
+        server = Kvt.VERTX.createHttpServer()
+        router = Router.router(Kvt.VERTX)
         initialized = true
 
         generatePaths()
