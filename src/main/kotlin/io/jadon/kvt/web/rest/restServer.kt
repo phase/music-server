@@ -1,8 +1,10 @@
 package io.jadon.kvt.web.rest
 
 import io.jadon.kvt.Kvt
+import io.jadon.kvt.model.Entity
 import io.vertx.core.http.HttpMethod
 import io.vertx.core.http.HttpServer
+import io.vertx.core.json.Json
 import io.vertx.core.json.JsonObject
 import io.vertx.ext.web.Router
 
@@ -69,10 +71,35 @@ open class RestApi(private val version: Int) {
 }
 
 object RestApiV1 : RestApi(1) {
+
+    private val errorJson: JsonObject = {
+        val j = JsonObject()
+        j.put("error", "null")
+        j
+    }()
+
+    private fun encode(obj: Entity?): JsonObject = if (obj == null) errorJson else JsonObject(Json.encode(obj))
+
+
+    // song paths
+
     @Path("/song/:id", HttpMethod.GET)
     fun song(id: Int): JsonObject {
-        val j = JsonObject()
-        j.put("id", id)
-        return j
+        return encode(Kvt.DB.getSong(id).get())
     }
+
+    // artist paths
+
+    @Path("/artist/:id", HttpMethod.GET)
+    fun artist(id: Int): JsonObject {
+        return encode(Kvt.DB.getArtist(id).get())
+    }
+
+    // album paths
+
+    @Path("/album/:id", HttpMethod.GET)
+    fun album(id: Int): JsonObject {
+        return encode(Kvt.DB.getAlbum(id).get())
+    }
+
 }

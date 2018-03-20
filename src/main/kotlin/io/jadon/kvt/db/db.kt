@@ -34,7 +34,7 @@ class DummyDatabase : Database {
     private val threadPool = Executors.newFixedThreadPool(3)
 
     override fun getSong(id: Int): Future<Song?> {
-        return threadPool.submit<Song?> { null }
+        return threadPool.submit<Song?> { Song("test name thing #weird title !@#$!@#$<>!@#$", listOf(1, 2)) }
     }
 
     override fun getSongs(ids: List<Int>): Future<List<Song>> {
