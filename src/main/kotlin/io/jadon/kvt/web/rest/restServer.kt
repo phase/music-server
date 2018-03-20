@@ -31,7 +31,7 @@ open class RestApi(private val version: Int) {
         initialized = true
 
         generatePaths()
-        server.requestHandler({ router.accept(it) }).listen(8080)
+        server.requestHandler({ router.accept(it) }).listen(2345)
         println("Server started")
     }
 

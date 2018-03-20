@@ -12,60 +12,16 @@ interface Database {
     // Song functions
 
     fun getSong(id: Int): Future<Song?>
-    fun getSongs(ids: List<Int>): Future<List<Song>>
-    fun searchSongs(name: String): Future<List<Song>>
+    fun searchSongs(name: String): Future<List<Int>>
 
     // Artist functions
 
     fun getArtist(id: Int): Future<Artist?>
-    fun getArtists(ids: List<Int>): Future<List<Artist>>
-    fun searchArtists(name: String): Future<List<Artist>>
+    fun searchArtists(name: String): Future<List<Int>>
 
     // Album functions
 
     fun getAlbum(id: Int): Future<Album?>
-    fun getAlbums(ids: List<Int>): Future<List<Album>>
-    fun searchAlbums(name: String): Future<List<Album>>
+    fun searchAlbums(name: String): Future<List<Int>>
 
-}
-
-class DummyDatabase : Database {
-
-    private val threadPool = Executors.newFixedThreadPool(3)
-
-    override fun getSong(id: Int): Future<Song?> {
-        return threadPool.submit<Song?> { Song("test name thing #weird title !@#$!@#$<>!@#$", listOf(1, 2)) }
-    }
-
-    override fun getSongs(ids: List<Int>): Future<List<Song>> {
-        return threadPool.submit<List<Song>> { listOf() }
-    }
-
-    override fun searchSongs(name: String): Future<List<Song>> {
-        return threadPool.submit<List<Song>> { listOf() }
-    }
-
-    override fun getArtist(id: Int): Future<Artist?> {
-        return threadPool.submit<Artist?> { null }
-    }
-
-    override fun getArtists(ids: List<Int>): Future<List<Artist>> {
-        return threadPool.submit<List<Artist>> { listOf() }
-    }
-
-    override fun searchArtists(name: String): Future<List<Artist>> {
-        return threadPool.submit<List<Artist>> { listOf() }
-    }
-
-    override fun getAlbum(id: Int): Future<Album?> {
-        return threadPool.submit<Album?> { null }
-    }
-
-    override fun getAlbums(ids: List<Int>): Future<List<Album>> {
-        return threadPool.submit<List<Album>> { listOf() }
-    }
-
-    override fun searchAlbums(name: String): Future<List<Album>> {
-        return threadPool.submit<List<Album>> { listOf() }
-    }
 }

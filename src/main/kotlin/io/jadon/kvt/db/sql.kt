@@ -103,23 +103,13 @@ class PostgreSQLDatabase(
         }
     }
 
-    override fun getSongs(ids: List<Int>): Future<List<Song>> {
-        return threadPool.submit<List<Song>> {
-            transaction {
-                SongRow.find {
-                    SongTable.id inList ids
-                }
-            }.toList().map { it.asSong() }
-        }
-    }
-
-    override fun searchSongs(name: String): Future<List<Song>> {
-        return threadPool.submit<List<Song>> {
+    override fun searchSongs(name: String): Future<List<Int>> {
+        return threadPool.submit<List<Int>> {
             transaction {
                 SongRow.find {
                     SongTable.name like name
                 }
-            }.toList().map { it.asSong() }
+            }.toList().map { it.id.value }
         }
     }
 
@@ -133,23 +123,13 @@ class PostgreSQLDatabase(
         }
     }
 
-    override fun getArtists(ids: List<Int>): Future<List<Artist>> {
-        return threadPool.submit<List<Artist>> {
-            transaction {
-                ArtistRow.find {
-                    ArtistTable.id inList ids
-                }
-            }.toList().map { it.asArtist() }
-        }
-    }
-
-    override fun searchArtists(name: String): Future<List<Artist>> {
-        return threadPool.submit<List<Artist>> {
+    override fun searchArtists(name: String): Future<List<Int>> {
+        return threadPool.submit<List<Int>> {
             transaction {
                 ArtistRow.find {
                     ArtistTable.name like name
                 }
-            }.toList().map { it.asArtist() }
+            }.toList().map { it.id.value }
         }
     }
 
@@ -163,23 +143,13 @@ class PostgreSQLDatabase(
         }
     }
 
-    override fun getAlbums(ids: List<Int>): Future<List<Album>> {
-        return threadPool.submit<List<Album>> {
-            transaction {
-                AlbumRow.find {
-                    AlbumTable.id inList ids
-                }
-            }.toList().map { it.asAlbum() }
-        }
-    }
-
-    override fun searchAlbums(name: String): Future<List<Album>> {
-        return threadPool.submit<List<Album>> {
+    override fun searchAlbums(name: String): Future<List<Int>> {
+        return threadPool.submit<List<Int>> {
             transaction {
                 AlbumRow.find {
                     AlbumTable.name like name
                 }
-            }.toList().map { it.asAlbum() }
+            }.toList().map { it.id.value }
         }
     }
 
