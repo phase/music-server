@@ -31,48 +31,57 @@ object AlbumTable : IntIdTable() {
 class SongRow(id: EntityID<Int>) : IntEntity(id) {
     companion object : IntEntityClass<SongRow>(SongTable)
 
-    var name = SongTable.name
-    var artistIds = SongTable.artistIds.transform(
+    private var _name = SongTable.name
+    val name: String
+        get() = readValues[_name]
+
+    private var _artistIds = SongTable.artistIds.transform(
             { a -> a.joinToString(":") },
             { s -> s.split(":").mapNotNull { it.toIntOrNull() } }
     )
+    val artistIds: List<Int>
+        get() = _artistIds.toReal(readValues[_artistIds.column])
 
     fun asSong(): Song {
-        val name = readValues[name]
-        val artistIds = artistIds.toReal(readValues[artistIds.column])
-        return Song(name, artistIds)
+        return Song(id.value, name, artistIds)
     }
 }
 
 class ArtistRow(id: EntityID<Int>) : IntEntity(id) {
     companion object : IntEntityClass<ArtistRow>(ArtistTable)
 
-    var name = ArtistTable.name
+    private var _name = ArtistTable.name
+    val name: String
+        get() = readValues[_name]
 
     fun asArtist(): Artist {
-        val name = readValues[name]
-        return Artist(name)
+        return Artist(id.value, name)
     }
 }
 
 class AlbumRow(id: EntityID<Int>) : IntEntity(id) {
     companion object : IntEntityClass<AlbumRow>(AlbumTable)
 
-    var name = AlbumTable.name
-    var artistIds = AlbumTable.artistIds.transform(
+    private var _name = AlbumTable.name
+    val name: String
+        get() = readValues[_name]
+
+    private var _artistIds = AlbumTable.artistIds.transform(
             { a -> a.joinToString(":") },
             { s -> s.split(":").mapNotNull { it.toIntOrNull() } }
     )
-    var songIds = AlbumTable.songIds.transform(
+    val artistIds: List<Int>
+        get() = _artistIds.toReal(readValues[_artistIds.column])
+
+    private var _songIds = AlbumTable.songIds.transform(
             { a -> a.joinToString(":") },
             { s -> s.split(":").mapNotNull { it.toIntOrNull() } }
     )
+    val songIds: List<Int>
+        get() = _songIds.toReal(readValues[_songIds.column])
 
     fun asAlbum(): Album {
-        val name = readValues[name]
-        val artistIds = artistIds.toReal(readValues[artistIds.column])
-        val songIds = songIds.toReal(readValues[songIds.column])
-        return Album(name, artistIds, songIds)
+        return Album(id.value, name, artistIds, songIds)
     }
 }
 

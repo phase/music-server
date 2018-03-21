@@ -24,15 +24,16 @@ class DummyDatabase : Database {
         songs.clear()
         albums.clear()
 
-        artists.addAll((0..10).map { Artist(generateName(1)) })
+        artists.addAll((0..10).map { Artist(it, generateName(1)) })
         songs.addAll(
                 artists.subList(0, artists.size - 2).mapIndexed { index, _ ->
-                    Song(generateName(), listOf(index, index + 1))
+                    Song(index, generateName(), listOf(index, index + 1))
                 }
         )
 
         albums.addAll((0..4).map {
             Album(
+                    it,
                     generateName(),
                     artists.mapIndexed { index, _ -> index }.subList(it, it + 2),
                     songs.mapIndexed { index, _ -> index }.subList(it, it + 3)
@@ -67,9 +68,8 @@ class DummyDatabase : Database {
     override fun searchSongs(name: String): Future<List<Int>> {
         return threadPool.submit<List<Int>> {
             songs
-                    .mapIndexed { index, song -> Pair(index, song) }
-                    .filter { it.second.name.contains(name, ignoreCase = true) }
-                    .map { it.first }
+                    .filter { it.name.contains(name, ignoreCase = true) }
+                    .mapNotNull { it.id }
         }
     }
 
@@ -80,9 +80,8 @@ class DummyDatabase : Database {
     override fun searchArtists(name: String): Future<List<Int>> {
         return threadPool.submit<List<Int>> {
             artists
-                    .mapIndexed { index, artist -> Pair(index, artist) }
-                    .filter { it.second.name.contains(name, ignoreCase = true) }
-                    .map { it.first }
+                    .filter { it.name.contains(name, ignoreCase = true) }
+                    .mapNotNull { it.id }
         }
     }
 
@@ -93,9 +92,8 @@ class DummyDatabase : Database {
     override fun searchAlbums(name: String): Future<List<Int>> {
         return threadPool.submit<List<Int>> {
             albums
-                    .mapIndexed { index, album -> Pair(index, album) }
-                    .filter { it.second.name.contains(name, ignoreCase = true) }
-                    .map { it.first }
+                    .filter { it.name.contains(name, ignoreCase = true) }
+                    .mapNotNull { it.id }
         }
     }
 }
