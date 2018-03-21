@@ -1,8 +1,6 @@
 package io.jadon.kvt.db
 
-import io.jadon.kvt.model.Album
-import io.jadon.kvt.model.Artist
-import io.jadon.kvt.model.Song
+import io.jadon.kvt.model.*
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
 import kotlin.math.roundToInt
@@ -61,11 +59,11 @@ class DummyDatabase : Database {
         return (1..maxWords).joinToString(separator = " ") { generateWord() }
     }
 
-    override fun getSong(id: Int): Future<Song?> {
+    override fun getSong(id: SongId): Future<Song?> {
         return threadPool.submit<Song?> { songs.getOrNull(id) }
     }
 
-    override fun searchSongs(name: String): Future<List<Int>> {
+    override fun searchSongs(name: String): Future<List<SongId>> {
         return threadPool.submit<List<Int>> {
             songs
                     .filter { it.name.contains(name, ignoreCase = true) }
@@ -73,11 +71,11 @@ class DummyDatabase : Database {
         }
     }
 
-    override fun getArtist(id: Int): Future<Artist?> {
+    override fun getArtist(id: ArtistId): Future<Artist?> {
         return threadPool.submit<Artist?> { artists.getOrNull(id) }
     }
 
-    override fun searchArtists(name: String): Future<List<Int>> {
+    override fun searchArtists(name: String): Future<List<ArtistId>> {
         return threadPool.submit<List<Int>> {
             artists
                     .filter { it.name.contains(name, ignoreCase = true) }
@@ -85,15 +83,30 @@ class DummyDatabase : Database {
         }
     }
 
-    override fun getAlbum(id: Int): Future<Album?> {
+    override fun getAlbum(id: AlbumId): Future<Album?> {
         return threadPool.submit<Album?> { albums.getOrNull(id) }
     }
 
-    override fun searchAlbums(name: String): Future<List<Int>> {
+    override fun searchAlbums(name: String): Future<List<AlbumId>> {
         return threadPool.submit<List<Int>> {
             albums
                     .filter { it.name.contains(name, ignoreCase = true) }
                     .mapNotNull { it.id }
         }
     }
+
+    // User content
+
+    override fun getUser(id: UserId): Future<User> {
+        TODO("not implemented")
+    }
+
+    override fun getFavorites(id: UserId): Future<List<SongId>> {
+        TODO("not implemented")
+    }
+
+    override fun getPlaylist(id: PlaylistId): Future<Playlist> {
+        TODO("not implemented")
+    }
+
 }

@@ -104,7 +104,7 @@ class PostgreSQLDatabase(
 
     // Song functions
 
-    override fun getSong(id: Int): Future<Song?> {
+    override fun getSong(id: SongId): Future<Song?> {
         return threadPool.submit<Song?> {
             transaction {
                 SongRow.findById(id)
@@ -112,7 +112,7 @@ class PostgreSQLDatabase(
         }
     }
 
-    override fun searchSongs(name: String): Future<List<Int>> {
+    override fun searchSongs(name: String): Future<List<SongId>> {
         return threadPool.submit<List<Int>> {
             transaction {
                 SongRow.find {
@@ -124,7 +124,7 @@ class PostgreSQLDatabase(
 
     // Artist functions
 
-    override fun getArtist(id: Int): Future<Artist?> {
+    override fun getArtist(id: ArtistId): Future<Artist?> {
         return threadPool.submit<Artist?> {
             transaction {
                 ArtistRow.findById(id)
@@ -132,7 +132,7 @@ class PostgreSQLDatabase(
         }
     }
 
-    override fun searchArtists(name: String): Future<List<Int>> {
+    override fun searchArtists(name: String): Future<List<ArtistId>> {
         return threadPool.submit<List<Int>> {
             transaction {
                 ArtistRow.find {
@@ -144,7 +144,7 @@ class PostgreSQLDatabase(
 
     // Album functions
 
-    override fun getAlbum(id: Int): Future<Album?> {
+    override fun getAlbum(id: AlbumId): Future<Album?> {
         return threadPool.submit<Album?> {
             transaction {
                 AlbumRow.findById(id)
@@ -152,7 +152,7 @@ class PostgreSQLDatabase(
         }
     }
 
-    override fun searchAlbums(name: String): Future<List<Int>> {
+    override fun searchAlbums(name: String): Future<List<AlbumId>> {
         return threadPool.submit<List<Int>> {
             transaction {
                 AlbumRow.find {
@@ -160,6 +160,20 @@ class PostgreSQLDatabase(
                 }
             }.toList().map { it.id.value }
         }
+    }
+
+    // User content
+
+    override fun getUser(id: UserId): Future<User> {
+        TODO("not implemented")
+    }
+
+    override fun getFavorites(id: UserId): Future<List<SongId>> {
+        TODO("not implemented")
+    }
+
+    override fun getPlaylist(id: PlaylistId): Future<Playlist> {
+        TODO("not implemented")
     }
 
 }
