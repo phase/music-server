@@ -15,11 +15,10 @@ annotation class Path(val path: String, val method: HttpMethod = HttpMethod.GET)
 
 open class RestApi(private val version: Int) {
 
-    lateinit var server: HttpServer
     lateinit var router: Router
     var initialized = false
 
-    fun init() {
+    fun init(): Router {
         if (initialized) {
             throw RuntimeException("RestApi was already initialized!")
         }
@@ -27,13 +26,17 @@ open class RestApi(private val version: Int) {
             throw RuntimeException("You need to implement RestApi with your JSON Paths!")
         }
 
-        server = Kvt.VERTX.createHttpServer()
         router = Router.router(Kvt.VERTX)
         initialized = true
 
         generatePaths()
-        server.requestHandler({ router.accept(it) }).listen(2345)
-        println("Server started")
+//        val port = 2345
+////        server.requestHandler({
+////            println(it.path())
+////            router.accept(it)
+////        }).listen(port)
+//        println("Server started @ http://localhost:$port")
+        return router
     }
 
     private fun generatePaths() {
