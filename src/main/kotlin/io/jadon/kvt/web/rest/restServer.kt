@@ -3,7 +3,6 @@ package io.jadon.kvt.web.rest
 import io.jadon.kvt.Kvt
 import io.jadon.kvt.model.Entity
 import io.vertx.core.http.HttpMethod
-import io.vertx.core.http.HttpServer
 import io.vertx.core.json.Json
 import io.vertx.core.json.JsonArray
 import io.vertx.core.json.JsonObject
@@ -18,25 +17,18 @@ open class RestApi(private val version: Int) {
     lateinit var router: Router
     var initialized = false
 
-    fun init(): Router {
+    fun init(router: Router) {
         if (initialized) {
             throw RuntimeException("RestApi was already initialized!")
         }
         if (this.javaClass.name == RestApi::class.java.name) {
             throw RuntimeException("You need to implement RestApi with your JSON Paths!")
         }
+        this.router = router
 
-        router = Router.router(Kvt.VERTX)
         initialized = true
 
         generatePaths()
-//        val port = 2345
-////        server.requestHandler({
-////            println(it.path())
-////            router.accept(it)
-////        }).listen(port)
-//        println("Server started @ http://localhost:$port")
-        return router
     }
 
     private fun generatePaths() {
