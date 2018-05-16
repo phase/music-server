@@ -19,7 +19,7 @@ object Kvt {
 
     @JvmStatic
     fun main(args: Array<String>) {
-        FS = DiskFileSystem("D:/music/indexed/")
+        FS = DiskFileSystem("D:/music/")
         DB = DummyDatabase()
         VERTX = Vertx.vertx()
         val router = Router.router(VERTX)
