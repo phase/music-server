@@ -176,4 +176,11 @@ class PostgreSQLDatabase(
         TODO("not implemented")
     }
 
+    override fun getUserFromName(username: String): Future<User> {
+        TODO("not implemented")
+    }
+
+    override fun loginUser(user: User): Future<Token> {
+        TODO("not implemented")
+    }
 }

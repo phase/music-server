@@ -36,6 +36,8 @@ dependencies {
 //    compile "com.github.andrewoma.kwery:core:0.17"
     compile 'org.jetbrains.exposed:exposed:0.9.1'
     compile group: 'org.postgresql', name: 'postgresql', version: '42.1.4'
+    // https://mvnrepository.com/artifact/org.mindrot/jbcrypt
+    compile group: 'org.mindrot', name: 'jbcrypt', version: '0.4'
 }
 
 compileKotlin {

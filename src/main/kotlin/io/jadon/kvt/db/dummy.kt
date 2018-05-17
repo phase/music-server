@@ -1,6 +1,7 @@
 package io.jadon.kvt.db
 
 import io.jadon.kvt.model.*
+import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
 import kotlin.math.roundToInt
@@ -107,6 +108,14 @@ class DummyDatabase : Database {
 
     override fun getPlaylist(id: PlaylistId): Future<Playlist> {
         TODO("not implemented")
+    }
+
+    override fun getUserFromName(username: String): Future<User> {
+        TODO("not implemented")
+    }
+
+    override fun loginUser(user: User): Future<Token> {
+        return threadPool.submit<Token> { UUID.randomUUID().toString() }
     }
 
 }

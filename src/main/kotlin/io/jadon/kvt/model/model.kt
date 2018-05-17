@@ -34,7 +34,8 @@ data class Album(
 
 data class User(
         val id: UserId?,
-        val name: String
+        val name: String,
+        val passwordHash: String
 ) : Entity
 
 data class Playlist(
