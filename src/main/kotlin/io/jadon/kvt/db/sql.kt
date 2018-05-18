@@ -1,13 +1,14 @@
 package io.jadon.kvt.db
 
+import io.jadon.kvt.Kvt
 import io.jadon.kvt.model.*
+import io.vertx.core.Future
+import io.vertx.core.WorkerExecutor
 import org.jetbrains.exposed.dao.EntityID
 import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.dao.IntIdTable
 import org.jetbrains.exposed.sql.transactions.transaction
-import java.util.concurrent.Executors
-import java.util.concurrent.Future
 
 // tables
 
@@ -95,7 +96,7 @@ class PostgreSQLDatabase(
         password: String
 ) : Database {
 
-    private val threadPool = Executors.newFixedThreadPool(3)
+    private val executor: WorkerExecutor by lazy { Kvt.VERTX.createSharedWorkerExecutor("sql_db", 4) }
 
     init {
         val connectionString = "jdbc:postgresql://$host:$port/$database?user=$user&password=$password"
@@ -105,66 +106,90 @@ class PostgreSQLDatabase(
     // Song functions
 
     override fun getSong(id: SongId): Future<Song?> {
-        return threadPool.submit<Song?> {
-            transaction {
+        val future = Future.future<Song?>()
+        executor.executeBlocking<Song?>({
+            val song = transaction {
                 SongRow.findById(id)
             }?.asSong()
-        }
+            it.complete(song)
+            future.complete(song)
+        }, {})
+        return future
     }
 
     override fun searchSongs(name: String): Future<List<SongId>> {
-        return threadPool.submit<List<Int>> {
-            transaction {
+        val future = Future.future<List<SongId>>()
+        executor.executeBlocking<List<SongId>>({
+            val songIds = transaction {
                 SongRow.find {
                     SongTable.name like name
                 }
             }.toList().map { it.id.value }
-        }
+            it.complete(songIds)
+            future.complete(songIds)
+        }, {})
+        return future
     }
 
     // Artist functions
 
     override fun getArtist(id: ArtistId): Future<Artist?> {
-        return threadPool.submit<Artist?> {
-            transaction {
+        val future = Future.future<Artist?>()
+        executor.executeBlocking<Artist?>({
+            val artist = transaction {
                 ArtistRow.findById(id)
             }?.asArtist()
-        }
+            it.complete(artist)
+            future.complete(artist)
+        }, {})
+        return future
     }
 
     override fun searchArtists(name: String): Future<List<ArtistId>> {
-        return threadPool.submit<List<Int>> {
-            transaction {
+        val future = Future.future<List<ArtistId>>()
+        executor.executeBlocking<List<ArtistId>>({
+            val artistIds = transaction {
                 ArtistRow.find {
                     ArtistTable.name like name
                 }
             }.toList().map { it.id.value }
-        }
+            it.complete(artistIds)
+            future.complete(artistIds)
+        }, {})
+        return future
     }
 
     // Album functions
 
     override fun getAlbum(id: AlbumId): Future<Album?> {
-        return threadPool.submit<Album?> {
-            transaction {
+        val future = Future.future<Album?>()
+        executor.executeBlocking<Album?>({
+            val album = transaction {
                 AlbumRow.findById(id)
             }?.asAlbum()
-        }
+            it.complete(album)
+            future.complete(album)
+        }, {})
+        return future
     }
 
     override fun searchAlbums(name: String): Future<List<AlbumId>> {
-        return threadPool.submit<List<Int>> {
-            transaction {
-                AlbumRow.find {
-                    AlbumTable.name like name
-                }
-            }.toList().map { it.id.value }
-        }
+        val future = Future.future<List<AlbumId>>()
+        executor.executeBlocking<List<AlbumId>>({
+            val albumIds = transaction {
+                        AlbumRow.find {
+                            AlbumTable.name like name
+                        }
+                    }.toList().map { it.id.value }
+            it.complete(albumIds)
+            future.complete(albumIds)
+        }, {})
+        return future
     }
 
     // User content
 
-    override fun getUser(id: UserId): Future<User> {
+    override fun getUser(id: UserId): Future<User?> {
         TODO("not implemented")
     }
 
@@ -172,11 +197,11 @@ class PostgreSQLDatabase(
         TODO("not implemented")
     }
 
-    override fun getPlaylist(id: PlaylistId): Future<Playlist> {
+    override fun getPlaylist(id: PlaylistId): Future<Playlist?> {
         TODO("not implemented")
     }
 
-    override fun getUserFromName(username: String): Future<User> {
+    override fun getUserFromName(username: String): Future<User?> {
         TODO("not implemented")
     }
 

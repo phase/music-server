@@ -1,7 +1,14 @@
 package io.jadon.kvt.web.rest
 
 import io.jadon.kvt.Kvt
+import io.jadon.kvt.model.AlbumId
+import io.jadon.kvt.model.ArtistId
 import io.jadon.kvt.model.Entity
+import io.jadon.kvt.model.SongId
+import io.vertx.core.AsyncResult
+import io.vertx.core.CompositeFuture
+import io.vertx.core.Future
+import io.vertx.core.Handler
 import io.vertx.core.MultiMap
 import io.vertx.core.http.HttpMethod
 import io.vertx.core.json.Json
@@ -50,7 +57,7 @@ open class RestApi(private val version: Int) {
                 val parameters = mutableListOf<Any>()
                 val paramMap = when (annotation.method) {
                     HttpMethod.GET -> routingContext.request().params().map { it.key to it.value }.toMap()
-                    HttpMethod.POST -> mapOf()
+                    HttpMethod.POST -> mapOf() // TODO
                     else -> null
                 }
                 paramMap?.entries?.forEachIndexed { i, routingParam ->
@@ -76,8 +83,21 @@ open class RestApi(private val version: Int) {
                     routingContext.response().putHeader("content-type", "text/json")
                     // TODO: Prod - obj.encode()
                     routingContext.response().end(obj.encodePrettily())
+                } else if (obj is Future<*>) {
+                    (obj as Future<JsonObject>).setHandler(Handler<AsyncResult<JsonObject>> {
+                        routingContext.response().putHeader("content-type", "text/json")
+                        if (it.succeeded()) {
+                            val result = it.result()
+                            routingContext.response().end(result.encodePrettily())
+                        } else {
+                            // TODO: Prod - obj.encode()
+                            routingContext.response().end(
+                                    errorJson("internal server error (future didn't succeed").encodePrettily()
+                            )
+                        }
+                    })
                 } else {
-                    throw RuntimeException("Method didn't return a JsonObject! ($obj)")
+                    throw RuntimeException("Method didn't return a JsonObject or Future! ($obj)")
                 }
             }
         }
@@ -93,57 +113,66 @@ object RestApiV1 : RestApi(1) {
     // song paths
 
     @Path("/song/:id")
-    fun song(id: Int): JsonObject {
-        return encode(Kvt.DB.getSong(id).get())
+    fun song(id: Int): Future<JsonObject> {
+        return Kvt.DB.getSong(id).compose {
+            Future.succeededFuture(encode(it))
+        }
     }
 
     // artist paths
 
     @Path("/artist/:id")
-    fun artist(id: Int): JsonObject {
-        return encode(Kvt.DB.getArtist(id).get())
+    fun artist(id: Int): Future<JsonObject> {
+        return Kvt.DB.getArtist(id).compose {
+            Future.succeededFuture(encode(it))
+        }
     }
 
     // album paths
 
     @Path("/album/:id")
-    fun album(id: Int): JsonObject {
-        return encode(Kvt.DB.getAlbum(id).get())
+    fun album(id: Int): Future<JsonObject> {
+        return Kvt.DB.getAlbum(id).compose {
+            Future.succeededFuture(encode(it))
+        }
     }
 
     @Path("/search/:q")
-    fun search(q: String): JsonObject {
-        val o = JsonObject()
-        o.put("search", q)
-        o.put("artistIds", JsonArray(Kvt.DB.searchArtists(q).get()))
-        o.put("songIds", JsonArray(Kvt.DB.searchSongs(q).get()))
-        o.put("albumIds", JsonArray(Kvt.DB.searchAlbums(q).get()))
-        return o
+    fun search(q: String): Future<JsonObject> {
+        return CompositeFuture.all(Kvt.DB.searchArtists(q), Kvt.DB.searchSongs(q), Kvt.DB.searchAlbums(q)).compose {
+            val o = JsonObject()
+            o.put("artistIds", JsonArray(it.resultAt<List<ArtistId>>(0)))
+            o.put("songIds", JsonArray(it.resultAt<List<SongId>>(1)))
+            o.put("albumIds", JsonArray(it.resultAt<List<AlbumId>>(2)))
+            Future.succeededFuture(o)
+        }
     }
 
     // account
 
     @Path("/login")
-    fun login(username: String, password: String): JsonObject {
+    fun login(username: String, password: String): Future<JsonObject> {
         println("LOGIN $username $password")
-        val user = Kvt.DB.getUserFromName(username).get()
-        val correctPassword = BCrypt.checkpw(password, user.passwordHash)
-        return if (true) {
-            val token = Kvt.DB.loginUser(user).get()
-            val o = JsonObject()
-            o.put("token", token.toString())
-            o
-        } else {
-            errorJson("wrong password")
+        return Kvt.DB.getUserFromName(username).compose {
+            if (it == null) return@compose Future.succeededFuture(errorJson("couldn't find user"))
+            val correctPassword = BCrypt.checkpw(password, it.passwordHash)
+            if (!correctPassword) return@compose Future.succeededFuture(errorJson("wrong password"))
+            Kvt.DB.loginUser(it).compose {
+                val o = JsonObject()
+                o.put("token", it.toString())
+                Future.succeededFuture(o)
+            }
         }
     }
 
     @Path("/validate")
-    fun validate(token: String): JsonObject {
-        println("VALIDTAE $token")
-        val o = JsonObject()
-        o.put("valid", Kvt.DB.isValidToken(token).get())
-        return o
+    fun validate(token: String): Future<JsonObject> {
+        println("VALIDATE $token")
+        return Kvt.DB.isValidToken(token).compose {
+            val o = JsonObject()
+            o.put("valid", it)
+            Future.succeededFuture(o)
+        }
     }
 
 }
