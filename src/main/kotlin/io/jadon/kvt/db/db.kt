@@ -1,7 +1,7 @@
 package io.jadon.kvt.db
 
 import io.jadon.kvt.model.*
-import java.util.concurrent.Future
+import io.vertx.core.Future
 
 typealias Token = String
 
@@ -24,11 +24,11 @@ interface Database {
 
     // User content
 
-    fun getUser(id: UserId): Future<User>
+    fun getUser(id: UserId): Future<User?>
     fun getFavorites(id: UserId): Future<List<SongId>>
-    fun getPlaylist(id: PlaylistId): Future<Playlist>
+    fun getPlaylist(id: PlaylistId): Future<Playlist?>
 
-    fun getUserFromName(username: String): Future<User>
+    fun getUserFromName(username: String): Future<User?>
 
     /**
      * Invalidates old token (if it exists) and creates a new one
