@@ -118,4 +118,8 @@ class DummyDatabase : Database {
         return threadPool.submit<Token> { UUID.randomUUID().toString() }
     }
 
+    override fun isValidToken(token: String): Future<Boolean> {
+        println("Checking token $token")
+        return threadPool.submit<Boolean> { true }
+    }
 }

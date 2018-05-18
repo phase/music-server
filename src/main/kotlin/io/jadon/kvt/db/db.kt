@@ -35,4 +35,6 @@ interface Database {
      */
     fun loginUser(user: User): Future<Token>
 
+    fun isValidToken(token: String): Future<Boolean>
+
 }

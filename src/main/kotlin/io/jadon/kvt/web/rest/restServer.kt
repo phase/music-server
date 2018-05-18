@@ -134,4 +134,11 @@ object RestApiV1 : RestApi(1) {
         }
     }
 
+    @Path("/validate")
+    fun validate(token: String): JsonObject {
+        val o = JsonObject()
+        o.put("valid", Kvt.DB.isValidToken(token).get())
+        return o
+    }
+
 }

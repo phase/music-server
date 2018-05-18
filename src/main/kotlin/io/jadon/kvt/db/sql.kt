@@ -183,4 +183,9 @@ class PostgreSQLDatabase(
     override fun loginUser(user: User): Future<Token> {
         TODO("not implemented")
     }
+
+    override fun isValidToken(token: String): Future<Boolean> {
+        TODO("not implemented")
+    }
+
 }
