@@ -28,11 +28,14 @@ class DiskFileSystem(directoryPath: String) : AbstractFileSystem {
     private fun readFile(file: File): ByteArray? {
         println("Reading file: ${file.absolutePath}")
         return try {
+            println("File.exists ${file.exists()}")
             file.readBytes()
         } catch (e: Exception) {
             null
         }
     }
+
+    private val temp by lazy { readFile(directory.resolve("artwork/test.jpg")) }
 
     override fun getSongBytes(id: SongId): ByteArray? {
         // Assuming everything is mp3 for now
@@ -40,15 +43,18 @@ class DiskFileSystem(directoryPath: String) : AbstractFileSystem {
     }
 
     override fun getSongArtworkBytes(id: SongId): ByteArray? {
-        return readFile(directory.resolve("artwork/song/" + id.toString() + ".jpg"))
+//        return readFile(directory.resolve("artwork/song/" + id.toString() + ".jpg"))
+        return temp
     }
 
     override fun getAlbumArtworkBytes(id: AlbumId): ByteArray? {
-        return readFile(directory.resolve("artwork/album/" + id.toString() + ".jpg"))
+//        return readFile(directory.resolve("artwork/album/" + id.toString() + ".jpg"))
+        return temp
     }
 
     override fun getPlaylistArtworkBytes(id: PlaylistId): ByteArray? {
-        return readFile(directory.resolve("artwork/playlist/" + id.toString() + ".jpg"))
+//        return readFile(directory.resolve("artwork/playlist/" + id.toString() + ".jpg"))
+        return temp
     }
 
 }

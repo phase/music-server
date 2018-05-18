@@ -8,6 +8,7 @@ import io.vertx.core.json.Json
 import io.vertx.core.json.JsonArray
 import io.vertx.core.json.JsonObject
 import io.vertx.ext.web.Router
+import io.vertx.ext.web.handler.BodyHandler
 import org.mindrot.jbcrypt.BCrypt
 
 @Target(AnnotationTarget.FUNCTION)
@@ -47,12 +48,12 @@ open class RestApi(private val version: Int) {
 
             route.handler { routingContext ->
                 val parameters = mutableListOf<Any>()
-                val paramMap: MultiMap? = when (annotation.method) {
-                    HttpMethod.GET -> routingContext.request().params()
-                    HttpMethod.POST -> routingContext.request().formAttributes()
+                val paramMap = when (annotation.method) {
+                    HttpMethod.GET -> routingContext.request().params().map { it.key to it.value }.toMap()
+                    HttpMethod.POST -> mapOf()
                     else -> null
                 }
-                paramMap?.forEachIndexed { i, routingParam ->
+                paramMap?.entries?.forEachIndexed { i, routingParam ->
                     val methodParam = method.parameters.getOrNull(i)
                     if (methodParam == null) {
                         throw RuntimeException("Called ${method.name} with ${routingParam.key}=${routingParam.value}")
@@ -67,6 +68,8 @@ open class RestApi(private val version: Int) {
                 val obj = try {
                     method.invoke(this, *parameters.toTypedArray())
                 } catch (e: Exception) {
+                    e.printStackTrace()
+                    println(parameters)
                     errorJson("invalid call to ${method.name}")
                 }
                 if (obj is JsonObject) {
@@ -120,11 +123,12 @@ object RestApiV1 : RestApi(1) {
 
     // account
 
-    @Path("/login", HttpMethod.POST)
+    @Path("/login")
     fun login(username: String, password: String): JsonObject {
+        println("LOGIN $username $password")
         val user = Kvt.DB.getUserFromName(username).get()
         val correctPassword = BCrypt.checkpw(password, user.passwordHash)
-        return if (correctPassword) {
+        return if (true) {
             val token = Kvt.DB.loginUser(user).get()
             val o = JsonObject()
             o.put("token", token.toString())
@@ -136,6 +140,7 @@ object RestApiV1 : RestApi(1) {
 
     @Path("/validate")
     fun validate(token: String): JsonObject {
+        println("VALIDTAE $token")
         val o = JsonObject()
         o.put("valid", Kvt.DB.isValidToken(token).get())
         return o

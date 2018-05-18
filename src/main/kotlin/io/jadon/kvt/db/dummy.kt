@@ -1,6 +1,7 @@
 package io.jadon.kvt.db
 
 import io.jadon.kvt.model.*
+import org.mindrot.jbcrypt.BCrypt
 import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
@@ -13,6 +14,7 @@ class DummyDatabase : Database {
     private var artists = mutableListOf<Artist>()
     private var songs = mutableListOf<Song>()
     private var albums = mutableListOf<Album>()
+    private var users = mutableListOf<User>()
 
     init {
         seed()
@@ -36,6 +38,14 @@ class DummyDatabase : Database {
                     generateName(),
                     artists.mapIndexed { index, _ -> index }.subList(it, it + 2),
                     songs.mapIndexed { index, _ -> index }.subList(it, it + 3)
+            )
+        })
+
+        users.addAll((0..10).map {
+            User(
+                    it,
+                    generateName(),
+                    BCrypt.hashpw(generateName(), BCrypt.gensalt())
             )
         })
 
@@ -111,7 +121,7 @@ class DummyDatabase : Database {
     }
 
     override fun getUserFromName(username: String): Future<User> {
-        TODO("not implemented")
+        return threadPool.submit<User> { this.users.first() }
     }
 
     override fun loginUser(user: User): Future<Token> {
