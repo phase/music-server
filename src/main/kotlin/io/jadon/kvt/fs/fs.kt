@@ -1,5 +1,6 @@
 package io.jadon.kvt.fs
 
+import io.jadon.kvt.Kvt
 import io.jadon.kvt.model.AlbumId
 import io.jadon.kvt.model.PlaylistId
 import io.jadon.kvt.model.SongId
@@ -28,8 +29,7 @@ class DiskFileSystem(directoryPath: String) : AbstractFileSystem {
     private fun readFile(file: File): ByteArray? {
         println("Reading file: ${file.absolutePath}")
         return try {
-            println("File.exists ${file.exists()}")
-            file.readBytes()
+            Kvt.VERTX.fileSystem().readFileBlocking(file.absolutePath).byteBuf.array()
         } catch (e: Exception) {
             null
         }
