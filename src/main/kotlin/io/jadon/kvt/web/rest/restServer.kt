@@ -5,8 +5,10 @@ import io.jadon.kvt.model.AlbumId
 import io.jadon.kvt.model.ArtistId
 import io.jadon.kvt.model.Entity
 import io.jadon.kvt.model.SongId
+import io.vertx.core.AsyncResult
 import io.vertx.core.CompositeFuture
 import io.vertx.core.Future
+import io.vertx.core.Handler
 import io.vertx.core.MultiMap
 import io.vertx.core.http.HttpMethod
 import io.vertx.core.json.Json
@@ -79,24 +81,18 @@ open class RestApi(private val version: Int) {
                     // TODO: Prod - obj.encode()
                     routingContext.response().end(obj.encodePrettily())
                 } else if (obj is Future<*>) {
-                    obj.setHandler {
+                    (obj as Future<JsonObject>).setHandler(Handler<AsyncResult<JsonObject>> {
                         routingContext.response().putHeader("content-type", "text/json")
                         if (it.succeeded()) {
                             val result = it.result()
-                            if (result is JsonObject) {
-                                routingContext.response().end(result.encodePrettily())
-                            } else {
-                                routingContext.response().end(
-                                        errorJson("internal server error (future didn't return json object").encodePrettily()
-                                )
-                            }
+                            routingContext.response().end(result.encodePrettily())
                         } else {
                             // TODO: Prod - obj.encode()
                             routingContext.response().end(
                                     errorJson("internal server error (future didn't succeed").encodePrettily()
                             )
                         }
-                    }
+                    })
                 } else {
                     throw RuntimeException("Method didn't return a JsonObject or Future! ($obj)")
                 }
