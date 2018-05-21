@@ -54,7 +54,7 @@ open class RestApi(private val version: Int) {
             val route = router.route(annotation.method, "/api/v$version" + annotation.path)
 
             route.handler { routingContext ->
-                val parameters = mutableListOf<Any>()
+                val parameters = mutableListOf<Any?>()
                 val paramMap = when (annotation.method) {
                     HttpMethod.GET -> routingContext.request().params().map { it.key to it.value }.toMap()
                     HttpMethod.POST -> mapOf() // TODO
@@ -65,18 +65,29 @@ open class RestApi(private val version: Int) {
                     if (methodParam == null) {
                         throw RuntimeException("Called ${method.name} with ${routingParam.key}=${routingParam.value}")
                     } else {
-                        parameters.add(when (methodParam.type) {
-                            Int::class.java -> routingParam.value.toInt()
-                            String::class.java -> routingParam.value.toString()
-                            else -> routingParam.value
-                        })
+                        parameters.add(routingParam.value.toString())
                     }
                 }
                 val obj = try {
-                    method.invoke(this, *parameters.toTypedArray())
+                    while (parameters.size < method.parameterCount) {
+                        parameters.add(0, null)
+                    }
+                    val mappedParams = parameters.mapIndexed { index, o ->
+                        val type = method.parameterTypes[index]
+                        val ret: Any? = if (o == null) {
+                            type.cast(null)
+                        } else {
+                            when (type) {
+                                Int::class.java -> o.toString().toInt()
+                                String::class.java -> o.toString()
+                                else -> o
+                            }
+                        }
+                        ret
+                    }
+                    method.invoke(this, *mappedParams.toTypedArray())
                 } catch (e: Exception) {
                     e.printStackTrace()
-                    println(parameters)
                     errorJson("invalid call to ${method.name}")
                 }
                 if (obj is JsonObject) {
@@ -117,6 +128,16 @@ object RestApiV1 : RestApi(1) {
         return Kvt.DB.getSong(id).compose {
             Future.succeededFuture(encode(it))
         }
+    }
+
+    @Path("/songs/new/:offset")
+    fun newSongs(token: String?, offset: Int): Future<JsonObject> {
+        return Future.succeededFuture(JsonObject(mapOf("token" to token, "offset" to offset)))
+    }
+
+    @Path("/songs/recent/:offset")
+    fun recentSongs(token: String?, offset: Int): Future<JsonObject> {
+        return Future.succeededFuture(JsonObject())
     }
 
     // artist paths
@@ -166,12 +187,12 @@ object RestApiV1 : RestApi(1) {
     }
 
     @Path("/validate")
-    fun validate(token: String): Future<JsonObject> {
+    fun validate(token: String?): Future<JsonObject> {
         println("VALIDATE $token")
-        return Kvt.DB.isValidToken(token).compose {
-            val o = JsonObject()
-            o.put("valid", it)
-            Future.succeededFuture(o)
+        return if (token == null) {
+            Future.succeededFuture(JsonObject(mapOf("valid" to false)))
+        } else Kvt.DB.isValidToken(token).compose {
+            Future.succeededFuture(JsonObject(mapOf("valid" to it)))
         }
     }
 
