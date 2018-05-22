@@ -95,7 +95,7 @@ open class RestApi(private val version: Int) {
                     // TODO: Prod - obj.encode()
                     routingContext.response().end(obj.encodePrettily())
                 } else if (obj is Future<*>) {
-                    (obj as Future<JsonObject>).setHandler(Handler<AsyncResult<JsonObject>> {
+                    (obj as Future<JsonObject>).setHandler {
                         routingContext.response().putHeader("content-type", "text/json")
                         if (it.succeeded()) {
                             val result = it.result()
@@ -108,7 +108,7 @@ open class RestApi(private val version: Int) {
                             )
                             it.cause().printStackTrace()
                         }
-                    })
+                    }
                 } else {
                     throw RuntimeException("Method didn't return a JsonObject or Future! ($obj)")
                 }
@@ -121,7 +121,9 @@ object RestApiV1 : RestApi(1) {
 
     private fun encode(obj: Entity?, error: String = "null result"): JsonObject =
             if (obj == null) errorJson(error)
-            else JsonObject(Json.encode(obj)).put("type", obj.javaClass.simpleName.split(".").last())
+            else JsonObject(Json.encode(obj))
+                    // get the type name from reflection
+                    .put("type", obj.javaClass.simpleName.split(".").last().toLowerCase())
 
     // song paths
 
@@ -164,18 +166,21 @@ object RestApiV1 : RestApi(1) {
     // account
 
     @Path("/login")
-    fun login(username: String, password: String): Future<JsonObject> {
+    fun login(username: String?, password: String?): Future<JsonObject> {
         println("LOGIN $username $password")
-        return Kvt.DB.getUserFromName(username).compose {
-            if (it == null) return@compose Future.succeededFuture(errorJson("couldn't find user"))
-            val correctPassword = BCrypt.checkpw(password, it.passwordHash)
-            if (!correctPassword) return@compose Future.succeededFuture(errorJson("wrong password"))
-            Kvt.DB.loginUser(it).compose {
-                val o = JsonObject()
-                o.put("token", it.toString())
-                Future.succeededFuture(o)
+        return if (username.isNullOrBlank() || password.isNullOrBlank()) {
+            Future.succeededFuture(errorJson("missing username or password"))
+        } else
+            Kvt.DB.getUserFromName(username!!).compose {
+                if (it == null) return@compose Future.succeededFuture(errorJson("couldn't find user"))
+                val correctPassword = BCrypt.checkpw(password!!, it.passwordHash)
+                if (!correctPassword) return@compose Future.succeededFuture(errorJson("wrong password"))
+                Kvt.DB.loginUser(it).compose {
+                    val o = JsonObject()
+                    o.put("token", it.toString())
+                    Future.succeededFuture(o)
+                }
             }
-        }
     }
 
     @Path("/validate")

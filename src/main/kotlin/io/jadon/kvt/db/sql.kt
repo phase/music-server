@@ -27,6 +27,17 @@ object AlbumTable : IntIdTable() {
     val songIds = text("song_ids")
 }
 
+object PlaylistTable : IntIdTable() {
+    val name = varchar("name", 64)
+    val userId = integer("user_id")
+    val songIds = text("song_ids")
+}
+
+object UserTable : IntIdTable() {
+    val name = varchar("name", 64)
+    val passwordHash = varchar("password_hash", 64)
+}
+
 // objects
 
 class SongRow(id: EntityID<Int>) : IntEntity(id) {
@@ -83,6 +94,45 @@ class AlbumRow(id: EntityID<Int>) : IntEntity(id) {
 
     fun asAlbum(): Album {
         return Album(id.value, name, artistIds, songIds)
+    }
+}
+
+class PlaylistRow(id: EntityID<Int>) : IntEntity(id) {
+    companion object : IntEntityClass<PlaylistRow>(PlaylistTable)
+
+    private var _name = PlaylistTable.name
+    val name: String
+        get() = readValues[_name]
+
+    private var _userId = PlaylistTable.userId
+    val userId: Int
+        get() = readValues[_userId]
+
+    private var _songIds = PlaylistTable.songIds.transform(
+            { a -> a.joinToString(":") },
+            { s -> s.split(":").mapNotNull { it.toIntOrNull() } }
+    )
+    val songIds: List<Int>
+        get() = _songIds.toReal(readValues[_songIds.column])
+
+    fun asPlaylist(): Playlist {
+        return Playlist(id.value, name, userId, songIds)
+    }
+}
+
+class UserRow(id: EntityID<Int>) : IntEntity(id) {
+    companion object : IntEntityClass<UserRow>(UserTable)
+
+    private var _name = UserTable.name
+    val name: String
+        get() = readValues[_name]
+
+    private var _passwordHash = UserTable.passwordHash
+    val passwordHash: String
+        get() = readValues[_passwordHash]
+
+    fun asUser(): User {
+        return User(id.value, name, passwordHash)
     }
 }
 
@@ -190,7 +240,15 @@ class PostgreSQLDatabase(
     // User content
 
     override fun getUser(id: UserId): Future<User?> {
-        TODO("not implemented")
+        val future = Future.future<User?>()
+        executor.executeBlocking<User?>({
+            val user = transaction {
+                UserRow.findById(id)
+            }?.asUser()
+            it.complete(user)
+            future.complete(user)
+        }, {})
+        return future
     }
 
     override fun getFavorites(id: UserId): Future<List<SongId>> {
@@ -198,11 +256,29 @@ class PostgreSQLDatabase(
     }
 
     override fun getPlaylist(id: PlaylistId): Future<Playlist?> {
-        TODO("not implemented")
+        val future = Future.future<Playlist?>()
+        executor.executeBlocking<Playlist?>({
+            val playlist = transaction {
+                PlaylistRow.findById(id)
+            }?.asPlaylist()
+            it.complete(playlist)
+            future.complete(playlist)
+        }, {})
+        return future
     }
 
     override fun getUserFromName(username: String): Future<User?> {
-        TODO("not implemented")
+        val future = Future.future<User?>()
+        executor.executeBlocking<User?>({
+            val user = transaction {
+                UserRow.find {
+                    UserTable.name like username
+                }.limit(1).firstOrNull()
+            }?.asUser()
+            it.complete(user)
+            future.complete(user)
+        }, {})
+        return future
     }
 
     override fun loginUser(user: User): Future<Token> {
