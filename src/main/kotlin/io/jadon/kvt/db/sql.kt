@@ -177,10 +177,10 @@ class PostgreSQLDatabase(
         val future = Future.future<List<AlbumId>>()
         executor.executeBlocking<List<AlbumId>>({
             val albumIds = transaction {
-                        AlbumRow.find {
-                            AlbumTable.name like name
-                        }
-                    }.toList().map { it.id.value }
+                AlbumRow.find {
+                    AlbumTable.name like name
+                }
+            }.toList().map { it.id.value }
             it.complete(albumIds)
             future.complete(albumIds)
         }, {})
@@ -210,6 +210,26 @@ class PostgreSQLDatabase(
     }
 
     override fun isValidToken(token: String): Future<Boolean> {
+        TODO("not implemented")
+    }
+
+    override fun getUser(token: String): Future<User?> {
+        TODO("not implemented")
+    }
+
+    override fun getNewEntity(user: User, offset: Int): Future<Entity?> {
+        TODO("not implemented")
+    }
+
+    override fun getRecentEntity(user: User, offset: Int): Future<Entity?> {
+        TODO("not implemented")
+    }
+
+    override fun getNewEntityCount(user: User): Future<Int> {
+        TODO("not implemented")
+    }
+
+    override fun getRecentEntityCount(user: User): Future<Int> {
         TODO("not implemented")
     }
 

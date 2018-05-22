@@ -166,4 +166,24 @@ class DummyDatabase : Database {
         return Future.succeededFuture(true)
     }
 
+    override fun getUser(token: String): Future<User?> {
+        return Future.succeededFuture(users.first())
+    }
+
+    override fun getNewEntity(user: User, offset: Int): Future<Entity?> {
+        return Future.succeededFuture(songs.getOrNull(offset))
+    }
+
+    override fun getRecentEntity(user: User, offset: Int): Future<Entity?> {
+        return Future.succeededFuture(songs.getOrNull(offset))
+    }
+
+    override fun getNewEntityCount(user: User): Future<Int> {
+        return Future.succeededFuture(songs.size)
+    }
+
+    override fun getRecentEntityCount(user: User): Future<Int> {
+        return Future.succeededFuture(songs.size)
+    }
+
 }

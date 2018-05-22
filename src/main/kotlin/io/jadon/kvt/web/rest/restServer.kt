@@ -99,12 +99,14 @@ open class RestApi(private val version: Int) {
                         routingContext.response().putHeader("content-type", "text/json")
                         if (it.succeeded()) {
                             val result = it.result()
+                            println("'${method.name}' returned '${result.encode()}'")
                             routingContext.response().end(result.encodePrettily())
                         } else {
                             // TODO: Prod - obj.encode()
                             routingContext.response().end(
                                     errorJson("internal server error (future didn't succeed").encodePrettily()
                             )
+                            it.cause().printStackTrace()
                         }
                     })
                 } else {
@@ -119,7 +121,7 @@ object RestApiV1 : RestApi(1) {
 
     private fun encode(obj: Entity?, error: String = "null result"): JsonObject =
             if (obj == null) errorJson(error)
-            else JsonObject(Json.encode(obj))
+            else JsonObject(Json.encode(obj)).put("type", obj.javaClass.simpleName.split(".").last())
 
     // song paths
 
@@ -128,16 +130,6 @@ object RestApiV1 : RestApi(1) {
         return Kvt.DB.getSong(id).compose {
             Future.succeededFuture(encode(it))
         }
-    }
-
-    @Path("/songs/new/:offset")
-    fun newSongs(token: String?, offset: Int): Future<JsonObject> {
-        return Future.succeededFuture(JsonObject(mapOf("token" to token, "offset" to offset)))
-    }
-
-    @Path("/songs/recent/:offset")
-    fun recentSongs(token: String?, offset: Int): Future<JsonObject> {
-        return Future.succeededFuture(JsonObject())
     }
 
     // artist paths
@@ -193,6 +185,78 @@ object RestApiV1 : RestApi(1) {
             Future.succeededFuture(JsonObject(mapOf("valid" to false)))
         } else Kvt.DB.isValidToken(token).compose {
             Future.succeededFuture(JsonObject(mapOf("valid" to it)))
+        }
+    }
+
+    // user home page
+
+    @Path("/stats")
+    fun stats(token: String?): Future<JsonObject> {
+        if (token == null) {
+            return Future.succeededFuture(errorJson("invalid token"))
+        }
+        return Kvt.DB.getUser(token).compose {
+            if (it == null) {
+                Future.succeededFuture(errorJson("invalid token"))
+            } else {
+                CompositeFuture.all(Kvt.DB.getRecentEntityCount(it), Kvt.DB.getNewEntityCount(it)).compose {
+                    Future.succeededFuture(JsonObject(mapOf(
+                            "recentCount" to it.resultAt(0),
+                            "newCount" to it.resultAt(1)
+                    )))
+                }
+            }
+        }
+    }
+
+    @Path("/new/:offset")
+    fun new(token: String?, offset: Int): Future<JsonObject> {
+        if (token == null) {
+            return Future.succeededFuture(errorJson("invalid token"))
+        }
+        return Kvt.DB.getUser(token).compose {
+            if (it == null) {
+                Future.succeededFuture(errorJson("invalid token"))
+            } else {
+                Kvt.DB.getNewEntity(it, offset).compose {
+                    if (it == null) {
+                        Future.succeededFuture(errorJson("no new entity found"))
+                    } else {
+                        Future.succeededFuture(encode(it))
+                    }
+                }
+            }
+        }
+    }
+
+    @Path("/recent/:offset")
+    fun recent(token: String?, offset: Int): Future<JsonObject> {
+        if (token == null) {
+            return Future.succeededFuture(errorJson("invalid token"))
+        }
+        return Kvt.DB.getUser(token).compose {
+            if (it == null) {
+                Future.succeededFuture(errorJson("invalid token"))
+            } else {
+                Kvt.DB.getRecentEntity(it, offset).compose {
+                    if (it == null) {
+                        Future.succeededFuture(errorJson("no recent entity found"))
+                    } else {
+                        Future.succeededFuture(encode(it))
+                    }
+                }
+            }
+        }
+    }
+
+    @Path("/user/:id")
+    fun user(id: Int): Future<JsonObject> {
+        return Kvt.DB.getUser(id).compose {
+            if (it == null) {
+                Future.succeededFuture(errorJson("invalid token"))
+            } else {
+                Future.succeededFuture(encode(it))
+            }
         }
     }
 

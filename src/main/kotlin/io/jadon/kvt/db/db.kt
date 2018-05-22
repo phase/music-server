@@ -25,6 +25,7 @@ interface Database {
     // User content
 
     fun getUser(id: UserId): Future<User?>
+    fun getUser(token: String): Future<User?>
     fun getFavorites(id: UserId): Future<List<SongId>>
     fun getPlaylist(id: PlaylistId): Future<Playlist?>
 
@@ -36,5 +37,11 @@ interface Database {
     fun loginUser(user: User): Future<Token>
 
     fun isValidToken(token: String): Future<Boolean>
+
+    fun getRecentEntityCount(user: User): Future<Int>
+    fun getRecentEntity(user: User, offset: Int): Future<Entity?>
+
+    fun getNewEntityCount(user: User): Future<Int>
+    fun getNewEntity(user: User, offset: Int): Future<Entity?>
 
 }
