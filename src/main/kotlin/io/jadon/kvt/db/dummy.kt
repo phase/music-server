@@ -145,10 +145,6 @@ class DummyDatabase : Database {
         return Future.succeededFuture(null)
     }
 
-    override fun getFavorites(id: UserId): Future<List<SongId>> {
-        return Future.succeededFuture(listOf())
-    }
-
     override fun getPlaylist(id: PlaylistId): Future<Playlist?> {
         return Future.succeededFuture(null)
     }

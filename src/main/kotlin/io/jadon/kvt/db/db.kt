@@ -26,7 +26,6 @@ interface Database {
 
     fun getUser(id: UserId): Future<User?>
     fun getUser(token: String): Future<User?>
-    fun getFavorites(id: UserId): Future<List<SongId>>
     fun getPlaylist(id: PlaylistId): Future<Playlist?>
 
     fun getUserFromName(username: String): Future<User?>

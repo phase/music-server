@@ -251,10 +251,6 @@ class PostgreSQLDatabase(
         return future
     }
 
-    override fun getFavorites(id: UserId): Future<List<SongId>> {
-        TODO("not implemented")
-    }
-
     override fun getPlaylist(id: PlaylistId): Future<Playlist?> {
         val future = Future.future<Playlist?>()
         executor.executeBlocking<Playlist?>({
@@ -281,6 +277,9 @@ class PostgreSQLDatabase(
         return future
     }
 
+    /*
+     * Remove last token and generate a new one
+     */
     override fun loginUser(user: User): Future<Token> {
         TODO("not implemented")
     }
