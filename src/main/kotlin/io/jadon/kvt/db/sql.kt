@@ -1,6 +1,6 @@
 package io.jadon.kvt.db
 
-import io.jadon.kvt.Kvt
+import io.jadon.kvt.MusicServer
 import io.jadon.kvt.model.*
 import io.vertx.core.Future
 import io.vertx.core.WorkerExecutor
@@ -174,7 +174,7 @@ class PostgreSQLDatabase(
         password: String
 ) : Database {
 
-    private val executor: WorkerExecutor by lazy { Kvt.VERTX.createSharedWorkerExecutor("sql_db", 4) }
+    private val executor: WorkerExecutor by lazy { MusicServer.vertx.createSharedWorkerExecutor("sql_db", 4) }
 
     init {
         val connectionString = "jdbc:postgresql://$host:$port/$database?user=$user&password=$password"

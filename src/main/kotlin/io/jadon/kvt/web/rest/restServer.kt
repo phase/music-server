@@ -1,6 +1,6 @@
 package io.jadon.kvt.web.rest
 
-import io.jadon.kvt.Kvt
+import io.jadon.kvt.MusicServer
 import io.jadon.kvt.model.AlbumId
 import io.jadon.kvt.model.ArtistId
 import io.jadon.kvt.model.Entity
@@ -125,7 +125,7 @@ object RestApiV1 : RestApi(1) {
 
     @Path("/song/:id")
     fun song(id: Int): Future<JsonObject> {
-        return Kvt.DB.getSong(id).compose {
+        return MusicServer.database.getSong(id).compose {
             Future.succeededFuture(encode(it))
         }
     }
@@ -134,7 +134,7 @@ object RestApiV1 : RestApi(1) {
 
     @Path("/artist/:id")
     fun artist(id: Int): Future<JsonObject> {
-        return Kvt.DB.getArtist(id).compose {
+        return MusicServer.database.getArtist(id).compose {
             Future.succeededFuture(encode(it))
         }
     }
@@ -143,14 +143,14 @@ object RestApiV1 : RestApi(1) {
 
     @Path("/album/:id")
     fun album(id: Int): Future<JsonObject> {
-        return Kvt.DB.getAlbum(id).compose {
+        return MusicServer.database.getAlbum(id).compose {
             Future.succeededFuture(encode(it))
         }
     }
 
     @Path("/search/:q")
     fun search(q: String): Future<JsonObject> {
-        return CompositeFuture.all(Kvt.DB.searchArtists(q), Kvt.DB.searchSongs(q), Kvt.DB.searchAlbums(q)).compose {
+        return CompositeFuture.all(MusicServer.database.searchArtists(q), MusicServer.database.searchSongs(q), MusicServer.database.searchAlbums(q)).compose {
             val o = JsonObject()
             o.put("artistIds", JsonArray(it.resultAt<List<ArtistId>>(0)))
             o.put("songIds", JsonArray(it.resultAt<List<SongId>>(1)))
@@ -167,11 +167,11 @@ object RestApiV1 : RestApi(1) {
         return if (username.isNullOrBlank() || password.isNullOrBlank()) {
             Future.succeededFuture(errorJson("missing username or password"))
         } else
-            Kvt.DB.getUserFromName(username!!).compose {
+            MusicServer.database.getUserFromName(username!!).compose {
                 if (it == null) return@compose Future.succeededFuture(errorJson("couldn't find user"))
                 val correctPassword = BCrypt.checkpw(password!!, it.passwordHash)
                 if (!correctPassword) return@compose Future.succeededFuture(errorJson("wrong password"))
-                Kvt.DB.loginUser(it).compose {
+                MusicServer.database.loginUser(it).compose {
                     val o = JsonObject()
                     o.put("token", it.toString())
                     Future.succeededFuture(o)
@@ -184,7 +184,7 @@ object RestApiV1 : RestApi(1) {
         println("VALIDATE $token")
         return if (token == null) {
             Future.succeededFuture(JsonObject(mapOf("valid" to false)))
-        } else Kvt.DB.isValidToken(token).compose {
+        } else MusicServer.database.isValidToken(token).compose {
             Future.succeededFuture(JsonObject(mapOf("valid" to it)))
         }
     }
@@ -196,11 +196,11 @@ object RestApiV1 : RestApi(1) {
         if (token == null) {
             return Future.succeededFuture(errorJson("invalid token"))
         }
-        return Kvt.DB.getUser(token).compose {
+        return MusicServer.database.getUser(token).compose {
             if (it == null) {
                 Future.succeededFuture(errorJson("invalid token"))
             } else {
-                CompositeFuture.all(Kvt.DB.getRecentEntityCount(it), Kvt.DB.getNewEntityCount()).compose {
+                CompositeFuture.all(MusicServer.database.getRecentEntityCount(it), MusicServer.database.getNewEntityCount()).compose {
                     Future.succeededFuture(JsonObject(mapOf(
                             "recentCount" to it.resultAt(0),
                             "newCount" to it.resultAt(1)
@@ -215,11 +215,11 @@ object RestApiV1 : RestApi(1) {
         if (token == null) {
             return Future.succeededFuture(errorJson("invalid token"))
         }
-        return Kvt.DB.getUser(token).compose {
+        return MusicServer.database.getUser(token).compose {
             if (it == null) {
                 Future.succeededFuture(errorJson("invalid token"))
             } else {
-                Kvt.DB.getNewEntity(offset).compose {
+                MusicServer.database.getNewEntity(offset).compose {
                     if (it == null) {
                         Future.succeededFuture(errorJson("no new entity found"))
                     } else {
@@ -235,11 +235,11 @@ object RestApiV1 : RestApi(1) {
         if (token == null) {
             return Future.succeededFuture(errorJson("invalid token"))
         }
-        return Kvt.DB.getUser(token).compose {
+        return MusicServer.database.getUser(token).compose {
             if (it == null) {
                 Future.succeededFuture(errorJson("invalid token"))
             } else {
-                Kvt.DB.getRecentEntity(it, offset).compose {
+                MusicServer.database.getRecentEntity(it, offset).compose {
                     if (it == null) {
                         Future.succeededFuture(errorJson("no recent entity found"))
                     } else {
@@ -252,7 +252,7 @@ object RestApiV1 : RestApi(1) {
 
     @Path("/user/:id")
     fun user(id: Int): Future<JsonObject> {
-        return Kvt.DB.getUser(id).compose {
+        return MusicServer.database.getUser(id).compose {
             if (it == null) {
                 Future.succeededFuture(errorJson("invalid token"))
             } else {

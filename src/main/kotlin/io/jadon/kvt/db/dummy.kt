@@ -1,6 +1,6 @@
 package io.jadon.kvt.db
 
-import io.jadon.kvt.Kvt
+import io.jadon.kvt.MusicServer
 import io.jadon.kvt.model.*
 import org.mindrot.jbcrypt.BCrypt
 import io.vertx.core.Future
@@ -48,7 +48,7 @@ class DummyDatabase : Database {
             )
         })
 
-        println("DUMMY DB DATA")
+        println("DUMMY database DATA")
         println("Artists: $artists")
         println("Songs: $songs")
         println("Albums: $albums")
@@ -69,7 +69,7 @@ class DummyDatabase : Database {
         return (1..maxWords).joinToString(separator = " ") { generateWord() }
     }
 
-    private val executor: WorkerExecutor by lazy { Kvt.VERTX.createSharedWorkerExecutor("dummy_db", 4) }
+    private val executor: WorkerExecutor by lazy { MusicServer.vertx.createSharedWorkerExecutor("dummy_db", 4) }
 
     // I don't know how to supply my own future to finish with so there's a lot of hackiness
 
