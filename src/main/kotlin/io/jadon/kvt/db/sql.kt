@@ -9,6 +9,8 @@ import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.dao.IntIdTable
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.sql.update
+import java.util.*
 
 // tables
 
@@ -36,6 +38,7 @@ object PlaylistTable : IntIdTable() {
 object UserTable : IntIdTable() {
     val name = varchar("name", 64)
     val passwordHash = varchar("password_hash", 64)
+    val token = varchar("token", 128)
 }
 
 // objects
@@ -43,16 +46,12 @@ object UserTable : IntIdTable() {
 class SongRow(id: EntityID<Int>) : IntEntity(id) {
     companion object : IntEntityClass<SongRow>(SongTable)
 
-    private var _name = SongTable.name
-    val name: String
-        get() = readValues[_name]
+    var name by SongTable.name
 
-    private var _artistIds = SongTable.artistIds.transform(
+    var artistIds by SongTable.artistIds.transform(
             { a -> a.joinToString(":") },
             { s -> s.split(":").mapNotNull { it.toIntOrNull() } }
     )
-    val artistIds: List<Int>
-        get() = _artistIds.toReal(readValues[_artistIds.column])
 
     fun asSong(): Song {
         return Song(id.value, name, artistIds)
@@ -62,9 +61,7 @@ class SongRow(id: EntityID<Int>) : IntEntity(id) {
 class ArtistRow(id: EntityID<Int>) : IntEntity(id) {
     companion object : IntEntityClass<ArtistRow>(ArtistTable)
 
-    private var _name = ArtistTable.name
-    val name: String
-        get() = readValues[_name]
+    var name by ArtistTable.name
 
     fun asArtist(): Artist {
         return Artist(id.value, name)
@@ -74,23 +71,17 @@ class ArtistRow(id: EntityID<Int>) : IntEntity(id) {
 class AlbumRow(id: EntityID<Int>) : IntEntity(id) {
     companion object : IntEntityClass<AlbumRow>(AlbumTable)
 
-    private var _name = AlbumTable.name
-    val name: String
-        get() = readValues[_name]
+    var name by AlbumTable.name
 
-    private var _artistIds = AlbumTable.artistIds.transform(
+    var artistIds by AlbumTable.artistIds.transform(
             { a -> a.joinToString(":") },
             { s -> s.split(":").mapNotNull { it.toIntOrNull() } }
     )
-    val artistIds: List<Int>
-        get() = _artistIds.toReal(readValues[_artistIds.column])
 
-    private var _songIds = AlbumTable.songIds.transform(
+    var songIds by AlbumTable.songIds.transform(
             { a -> a.joinToString(":") },
             { s -> s.split(":").mapNotNull { it.toIntOrNull() } }
     )
-    val songIds: List<Int>
-        get() = _songIds.toReal(readValues[_songIds.column])
 
     fun asAlbum(): Album {
         return Album(id.value, name, artistIds, songIds)
@@ -100,20 +91,14 @@ class AlbumRow(id: EntityID<Int>) : IntEntity(id) {
 class PlaylistRow(id: EntityID<Int>) : IntEntity(id) {
     companion object : IntEntityClass<PlaylistRow>(PlaylistTable)
 
-    private var _name = PlaylistTable.name
-    val name: String
-        get() = readValues[_name]
+    var name by PlaylistTable.name
 
-    private var _userId = PlaylistTable.userId
-    val userId: Int
-        get() = readValues[_userId]
+    var userId by PlaylistTable.userId
 
-    private var _songIds = PlaylistTable.songIds.transform(
+    var songIds by PlaylistTable.songIds.transform(
             { a -> a.joinToString(":") },
             { s -> s.split(":").mapNotNull { it.toIntOrNull() } }
     )
-    val songIds: List<Int>
-        get() = _songIds.toReal(readValues[_songIds.column])
 
     fun asPlaylist(): Playlist {
         return Playlist(id.value, name, userId, songIds)
@@ -123,13 +108,11 @@ class PlaylistRow(id: EntityID<Int>) : IntEntity(id) {
 class UserRow(id: EntityID<Int>) : IntEntity(id) {
     companion object : IntEntityClass<UserRow>(UserTable)
 
-    private var _name = UserTable.name
-    val name: String
-        get() = readValues[_name]
+    var name by UserTable.name
 
-    private var _passwordHash = UserTable.passwordHash
-    val passwordHash: String
-        get() = readValues[_passwordHash]
+    var passwordHash by UserTable.passwordHash
+
+    var token by UserTable.token
 
     fun asUser(): User {
         return User(id.value, name, passwordHash)
@@ -281,15 +264,40 @@ class PostgreSQLDatabase(
      * Remove last token and generate a new one
      */
     override fun loginUser(user: User): Future<Token> {
-        TODO("not implemented")
+        val future = Future.future<Token>()
+        executor.executeBlocking<Token>({
+            val token = UUID.randomUUID().toString()
+            transaction {
+                UserRow.findById(user.id!!)!!.token = token
+            }
+            it.complete(token)
+            future.complete(token)
+        }, {})
+        return future
     }
 
     override fun isValidToken(token: String): Future<Boolean> {
-        TODO("not implemented")
+        val future = Future.future<Boolean>()
+        executor.executeBlocking<Boolean>({
+            val result = transaction {
+                UserRow.find { UserTable.token eq token }.limit(1).count() > 0
+            }
+            it.complete(result)
+            future.complete(result)
+        }, {})
+        return future
     }
 
     override fun getUser(token: String): Future<User?> {
-        TODO("not implemented")
+        val future = Future.future<User?>()
+        executor.executeBlocking<User?>({
+            val result = transaction {
+                UserRow.find { UserTable.token eq token }.limit(1).firstOrNull()?.asUser()
+            }
+            it.complete(result)
+            future.complete(result)
+        }, {})
+        return future
     }
 
     override fun getNewEntity(user: User, offset: Int): Future<Entity?> {
