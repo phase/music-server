@@ -5,17 +5,13 @@ import io.jadon.kvt.model.AlbumId
 import io.jadon.kvt.model.ArtistId
 import io.jadon.kvt.model.Entity
 import io.jadon.kvt.model.SongId
-import io.vertx.core.AsyncResult
 import io.vertx.core.CompositeFuture
 import io.vertx.core.Future
-import io.vertx.core.Handler
-import io.vertx.core.MultiMap
 import io.vertx.core.http.HttpMethod
 import io.vertx.core.json.Json
 import io.vertx.core.json.JsonArray
 import io.vertx.core.json.JsonObject
 import io.vertx.ext.web.Router
-import io.vertx.ext.web.handler.BodyHandler
 import org.mindrot.jbcrypt.BCrypt
 
 @Target(AnnotationTarget.FUNCTION)
@@ -204,7 +200,7 @@ object RestApiV1 : RestApi(1) {
             if (it == null) {
                 Future.succeededFuture(errorJson("invalid token"))
             } else {
-                CompositeFuture.all(Kvt.DB.getRecentEntityCount(it), Kvt.DB.getNewEntityCount(it)).compose {
+                CompositeFuture.all(Kvt.DB.getRecentEntityCount(it), Kvt.DB.getNewEntityCount()).compose {
                     Future.succeededFuture(JsonObject(mapOf(
                             "recentCount" to it.resultAt(0),
                             "newCount" to it.resultAt(1)
@@ -223,7 +219,7 @@ object RestApiV1 : RestApi(1) {
             if (it == null) {
                 Future.succeededFuture(errorJson("invalid token"))
             } else {
-                Kvt.DB.getNewEntity(it, offset).compose {
+                Kvt.DB.getNewEntity(offset).compose {
                     if (it == null) {
                         Future.succeededFuture(errorJson("no new entity found"))
                     } else {

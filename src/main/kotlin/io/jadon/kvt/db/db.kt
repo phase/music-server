@@ -40,7 +40,7 @@ interface Database {
     fun getRecentEntityCount(user: User): Future<Int>
     fun getRecentEntity(user: User, offset: Int): Future<Entity?>
 
-    fun getNewEntityCount(user: User): Future<Int>
-    fun getNewEntity(user: User, offset: Int): Future<Entity?>
+    fun getNewEntityCount(): Future<Int>
+    fun getNewEntity(offset: Int): Future<Entity?>
 
 }

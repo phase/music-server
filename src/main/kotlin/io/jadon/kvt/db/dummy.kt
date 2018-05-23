@@ -166,7 +166,7 @@ class DummyDatabase : Database {
         return Future.succeededFuture(users.first())
     }
 
-    override fun getNewEntity(user: User, offset: Int): Future<Entity?> {
+    override fun getNewEntity(offset: Int): Future<Entity?> {
         return Future.succeededFuture(songs.getOrNull(offset))
     }
 
@@ -174,7 +174,7 @@ class DummyDatabase : Database {
         return Future.succeededFuture(songs.getOrNull(offset))
     }
 
-    override fun getNewEntityCount(user: User): Future<Int> {
+    override fun getNewEntityCount(): Future<Int> {
         return Future.succeededFuture(songs.size)
     }
 

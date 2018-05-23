@@ -9,8 +9,22 @@ import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.dao.IntIdTable
 import org.jetbrains.exposed.sql.transactions.transaction
-import org.jetbrains.exposed.sql.update
 import java.util.*
+
+internal enum class MusicEntityID(val id: Int) {
+    SONG(0), ALBUM(1), PLAYLIST(2);
+
+    companion object {
+        fun valueOf(id: Int): MusicEntityID {
+            return when (id) {
+                0 -> SONG
+                1 -> ALBUM
+                2 -> PLAYLIST
+                else -> throw IllegalArgumentException("$id is not a MusicEntityID")
+            }
+        }
+    }
+}
 
 // tables
 
@@ -41,13 +55,25 @@ object UserTable : IntIdTable() {
     val token = varchar("token", 128)
 }
 
+object RecentEntityTable : IntIdTable() {
+    val userId = integer("user_id")
+    val time = datetime("timestamp")
+    val type = integer("type")
+    val entityId = integer("entity_id")
+}
+
+object NewEntityTable : IntIdTable() {
+    val time = datetime("timestamp")
+    val type = integer("type")
+    val entityId = integer("entity_id")
+}
+
 // objects
 
 class SongRow(id: EntityID<Int>) : IntEntity(id) {
     companion object : IntEntityClass<SongRow>(SongTable)
 
     var name by SongTable.name
-
     var artistIds by SongTable.artistIds.transform(
             { a -> a.joinToString(":") },
             { s -> s.split(":").mapNotNull { it.toIntOrNull() } }
@@ -72,12 +98,10 @@ class AlbumRow(id: EntityID<Int>) : IntEntity(id) {
     companion object : IntEntityClass<AlbumRow>(AlbumTable)
 
     var name by AlbumTable.name
-
     var artistIds by AlbumTable.artistIds.transform(
             { a -> a.joinToString(":") },
             { s -> s.split(":").mapNotNull { it.toIntOrNull() } }
     )
-
     var songIds by AlbumTable.songIds.transform(
             { a -> a.joinToString(":") },
             { s -> s.split(":").mapNotNull { it.toIntOrNull() } }
@@ -92,9 +116,7 @@ class PlaylistRow(id: EntityID<Int>) : IntEntity(id) {
     companion object : IntEntityClass<PlaylistRow>(PlaylistTable)
 
     var name by PlaylistTable.name
-
     var userId by PlaylistTable.userId
-
     var songIds by PlaylistTable.songIds.transform(
             { a -> a.joinToString(":") },
             { s -> s.split(":").mapNotNull { it.toIntOrNull() } }
@@ -109,13 +131,36 @@ class UserRow(id: EntityID<Int>) : IntEntity(id) {
     companion object : IntEntityClass<UserRow>(UserTable)
 
     var name by UserTable.name
-
     var passwordHash by UserTable.passwordHash
-
     var token by UserTable.token
 
     fun asUser(): User {
         return User(id.value, name, passwordHash)
+    }
+}
+
+class RecentEntityRow(id: EntityID<Int>) : IntEntity(id) {
+    companion object : IntEntityClass<RecentEntityRow>(RecentEntityTable)
+
+    var userId by RecentEntityTable.userId
+    var time by RecentEntityTable.time
+    var typeId by RecentEntityTable.type
+    var entityId by RecentEntityTable.entityId
+
+    internal fun getType(): MusicEntityID {
+        return MusicEntityID.valueOf(typeId)
+    }
+}
+
+class NewEntityRow(id: EntityID<Int>) : IntEntity(id) {
+    companion object : IntEntityClass<NewEntityRow>(NewEntityTable)
+
+    var time by NewEntityTable.time
+    var typeId by NewEntityTable.type
+    var entityId by NewEntityTable.entityId
+
+    internal fun getType(): MusicEntityID {
+        return MusicEntityID.valueOf(typeId)
     }
 }
 
@@ -300,20 +345,68 @@ class PostgreSQLDatabase(
         return future
     }
 
-    override fun getNewEntity(user: User, offset: Int): Future<Entity?> {
-        TODO("not implemented")
+    override fun getNewEntity(offset: Int): Future<Entity?> {
+        val future = Future.future<Entity?>()
+        executor.executeBlocking<Entity?>({ o ->
+            val result = transaction {
+                val entity = NewEntityRow.all().sortedBy { it.time }[offset]
+                when (entity.getType()) {
+                    MusicEntityID.SONG -> getSong(entity.entityId)
+                    MusicEntityID.ALBUM -> getAlbum(entity.entityId)
+                    MusicEntityID.PLAYLIST -> getPlaylist(entity.entityId)
+                }
+            }
+            result.setHandler {
+                val r = it.result()
+                o.complete(r)
+                future.complete(r)
+            }
+        }, {})
+        return future
     }
 
     override fun getRecentEntity(user: User, offset: Int): Future<Entity?> {
-        TODO("not implemented")
+        val future = Future.future<Entity?>()
+        executor.executeBlocking<Entity?>({ o ->
+            val result = transaction {
+                val entity = RecentEntityRow.all().filter { it.userId == user.id }.sortedBy { it.time }[offset]
+                when (entity.getType()) {
+                    MusicEntityID.SONG -> getSong(entity.entityId)
+                    MusicEntityID.ALBUM -> getAlbum(entity.entityId)
+                    MusicEntityID.PLAYLIST -> getPlaylist(entity.entityId)
+                }
+            }
+            result.setHandler {
+                val r = it.result()
+                o.complete(r)
+                future.complete(r)
+            }
+        }, {})
+        return future
     }
 
-    override fun getNewEntityCount(user: User): Future<Int> {
-        TODO("not implemented")
+    override fun getNewEntityCount(): Future<Int> {
+        val future = Future.future<Int>()
+        executor.executeBlocking<Int>({
+            val result = transaction {
+                Math.max(100, NewEntityRow.all().count())
+            }
+            it.complete(result)
+            future.complete(result)
+        }, {})
+        return future
     }
 
     override fun getRecentEntityCount(user: User): Future<Int> {
-        TODO("not implemented")
+        val future = Future.future<Int>()
+        executor.executeBlocking<Int>({
+            val result = transaction {
+                Math.max(100, RecentEntityRow.all().filter { it.userId == user.id }.count())
+            }
+            it.complete(result)
+            future.complete(result)
+        }, {})
+        return future
     }
 
 }
