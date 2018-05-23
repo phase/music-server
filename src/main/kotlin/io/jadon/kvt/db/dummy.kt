@@ -43,8 +43,8 @@ class DummyDatabase : Database {
         users.addAll((0..10).map {
             User(
                     it,
-                    generateName(),
-                    BCrypt.hashpw(generateName(), BCrypt.gensalt())
+                    generateName(1),
+                    BCrypt.hashpw(generateName(1), BCrypt.gensalt())
             )
         })
 
@@ -54,11 +54,11 @@ class DummyDatabase : Database {
         println("Albums: $albums")
     }
 
-    private fun generateName(maxWords: Int = 3): String {
+    private fun generateName(maxWords: Int = 1 + (Math.random() * 3).toInt()): String {
         val uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray()
         val lowercase = "abcdefghijklmnopqrstuvwxyz".toCharArray()
 
-        fun generateWord(maxLength: Int = 10): String {
+        fun generateWord(maxLength: Int = 3 + (Math.random() * 7).toInt()): String {
             val buffer = StringBuffer()
             val firstLetter = uppercase[(Math.random() * 25).roundToInt()]
             buffer.append(firstLetter)
