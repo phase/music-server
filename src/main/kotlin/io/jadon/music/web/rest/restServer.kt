@@ -1,10 +1,7 @@
 package io.jadon.music.web.rest
 
 import io.jadon.music.MusicServer
-import io.jadon.music.model.AlbumId
-import io.jadon.music.model.ArtistId
-import io.jadon.music.model.Entity
-import io.jadon.music.model.SongId
+import io.jadon.music.model.*
 import io.vertx.core.CompositeFuture
 import io.vertx.core.Future
 import io.vertx.core.http.HttpMethod
@@ -152,9 +149,9 @@ object RestApiV1 : RestApi(1) {
     fun search(q: String): Future<JsonObject> {
         return CompositeFuture.all(MusicServer.database.searchArtists(q), MusicServer.database.searchSongs(q), MusicServer.database.searchAlbums(q)).compose {
             val o = JsonObject()
-            o.put("artistIds", JsonArray(it.resultAt<List<ArtistId>>(0)))
-            o.put("songIds", JsonArray(it.resultAt<List<SongId>>(1)))
-            o.put("albumIds", JsonArray(it.resultAt<List<AlbumId>>(2)))
+            o.put("artistIds", JsonArray(it.resultAt<List<Artist>>(0).map { it.id }))
+            o.put("songIds", JsonArray(it.resultAt<List<Song>>(1).map { it.id }))
+            o.put("albumIds", JsonArray(it.resultAt<List<Album>>(2).map { it.id }))
             Future.succeededFuture(o)
         }
     }

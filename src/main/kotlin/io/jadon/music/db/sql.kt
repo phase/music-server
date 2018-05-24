@@ -1,7 +1,9 @@
 package io.jadon.music.db
 
 import io.jadon.music.MusicServer
+import io.jadon.music.fs.UnprocessedSong
 import io.jadon.music.model.*
+import io.vertx.core.CompositeFuture
 import io.vertx.core.Future
 import io.vertx.core.WorkerExecutor
 import org.jetbrains.exposed.dao.EntityID
@@ -214,16 +216,69 @@ class PostgreSQLDatabase(
         return future
     }
 
-    override fun searchSongs(name: String): Future<List<SongId>> {
-        val future = Future.future<List<SongId>>()
-        executor.executeBlocking<List<SongId>>({
-            val songIds = transaction {
-                SongRow.find {
-                    SongTable.name like name
+    override fun searchSongs(name: String): Future<List<Song>> {
+        val future = Future.future<List<Song>>()
+        executor.executeBlocking<List<Song>>({
+            val songs = transaction {
+                SongRow.all().filter {
+                    sanitize(it.name).contains(sanitize(name))
                 }
-            }.toList().map { it.id.value }
-            it.complete(songIds)
-            future.complete(songIds)
+            }.map { it.asSong() }
+            it.complete(songs)
+            future.complete(songs)
+        }, {})
+        return future
+    }
+
+    override fun addSong(unprocessedSong: UnprocessedSong): Future<Song> {
+        assert(unprocessedSong.name != null, { "Tried to add a song to the DB that doesn't have a name!" })
+        val future = Future.future<Song>()
+        executor.executeBlocking<Song?>({ o ->
+            // check if song is already in db
+            searchSongs(unprocessedSong.name!!).setHandler {
+                val possibleDuplicates = it.result()
+                for (song in possibleDuplicates) {
+                    if (sanitize(unprocessedSong.name!!) == sanitize(song.name)) {
+                        // song already exists in DB
+                        o.complete(song)
+                        future.complete(song)
+                        return@setHandler
+                    }
+                }
+
+                CompositeFuture.all(unprocessedSong.artists.mapIndexed { i, artistName ->
+                    // search for artists already in the db
+                    searchArtists(artistName).compose { Future.succeededFuture(Pair(i, it)) }
+                }).setHandler {
+                    val results = it.result().list<Pair<Int, List<ArtistId>>>().toMap()
+                    // get the final list of artist ids
+                    CompositeFuture.all(unprocessedSong.artists.mapIndexed { i, artistName ->
+                        val artistIdFuture = Future.future<ArtistId>()
+                        val possibleArtists = results[i]
+                        if (possibleArtists != null && possibleArtists.isNotEmpty()) {
+                            // there is an artist already in the db
+                            artistIdFuture.complete(possibleArtists[0])
+                        } else {
+                            // we need to make a new artist in the db
+                            addArtist(artistName).setHandler {
+                                artistIdFuture.complete(it.result().id)
+                            }
+                        }
+                        artistIdFuture
+                    }).setHandler {
+                        // add the song to the db
+                        val finalArtistIds = it.result().list<ArtistId>()
+                        val song = transaction {
+                            SongRow.new {
+                                name = unprocessedSong.name!!
+                                artistIds = finalArtistIds
+                            }.asSong()
+                        }
+                        o.complete(song)
+                        future.complete(song)
+                    }
+                }
+            }
         }, {})
         return future
     }
@@ -242,16 +297,34 @@ class PostgreSQLDatabase(
         return future
     }
 
-    override fun searchArtists(name: String): Future<List<ArtistId>> {
-        val future = Future.future<List<ArtistId>>()
-        executor.executeBlocking<List<ArtistId>>({
-            val artistIds = transaction {
-                ArtistRow.find {
-                    ArtistTable.name like name
+    override fun searchArtists(name: String): Future<List<Artist>> {
+        val future = Future.future<List<Artist>>()
+        executor.executeBlocking<List<Artist>>({
+            val artists = transaction {
+                ArtistRow.all().filter {
+                    sanitize(it.name).contains(sanitize(name))
                 }
-            }.toList().map { it.id.value }
-            it.complete(artistIds)
-            future.complete(artistIds)
+            }.map { it.asArtist() }
+            it.complete(artists)
+            future.complete(artists)
+        }, {})
+        return future
+    }
+
+    /**
+     * Assumes the artist is not in the DB yet.
+     * Use searchArtists() before using this method.
+     */
+    override fun addArtist(name: String): Future<Artist> {
+        val future = Future.future<Artist>()
+        executor.executeBlocking<Artist>({ o ->
+            val artist = transaction {
+                ArtistRow.new {
+                    this.name = name
+                }.asArtist()
+            }
+            o.complete(artist)
+            future.complete(artist)
         }, {})
         return future
     }
@@ -270,16 +343,36 @@ class PostgreSQLDatabase(
         return future
     }
 
-    override fun searchAlbums(name: String): Future<List<AlbumId>> {
-        val future = Future.future<List<AlbumId>>()
-        executor.executeBlocking<List<AlbumId>>({
-            val albumIds = transaction {
-                AlbumRow.find {
-                    AlbumTable.name like name
+    override fun searchAlbums(name: String): Future<List<Album>> {
+        val future = Future.future<List<Album>>()
+        executor.executeBlocking<List<Album>>({
+            val albums = transaction {
+                AlbumRow.all().filter {
+                    sanitize(it.name).contains(sanitize(name))
                 }
-            }.toList().map { it.id.value }
-            it.complete(albumIds)
-            future.complete(albumIds)
+            }.map { it.asAlbum() }
+            it.complete(albums)
+            future.complete(albums)
+        }, {})
+        return future
+    }
+
+    /**
+     * Assumes the album is not in the DB yet.
+     * Use searchAlbums() before using this method.
+     */
+    override fun addAlbum(name: String, artistIds: List<ArtistId>, songIds: List<SongId>): Future<Album> {
+        val future = Future.future<Album>()
+        executor.executeBlocking<Album>({ o ->
+            val album = transaction {
+                AlbumRow.new {
+                    this.name = name
+                    this.artistIds = artistIds
+                    this.songIds = songIds
+                }.asAlbum()
+            }
+            o.complete(album)
+            future.complete(album)
         }, {})
         return future
     }

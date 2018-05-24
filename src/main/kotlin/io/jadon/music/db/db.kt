@@ -1,5 +1,6 @@
 package io.jadon.music.db
 
+import io.jadon.music.fs.UnprocessedSong
 import io.jadon.music.model.*
 import io.vertx.core.Future
 
@@ -10,17 +11,20 @@ interface Database {
     // Song functions
 
     fun getSong(id: SongId): Future<Song?>
-    fun searchSongs(name: String): Future<List<SongId>>
+    fun searchSongs(name: String): Future<List<Song>>
+    fun addSong(unprocessedSong: UnprocessedSong): Future<Song>
 
     // Artist functions
 
     fun getArtist(id: ArtistId): Future<Artist?>
-    fun searchArtists(name: String): Future<List<ArtistId>>
+    fun searchArtists(name: String): Future<List<Artist>>
+    fun addArtist(name: String): Future<Artist>
 
     // Album functions
 
     fun getAlbum(id: AlbumId): Future<Album?>
-    fun searchAlbums(name: String): Future<List<AlbumId>>
+    fun searchAlbums(name: String): Future<List<Album>>
+    fun addAlbum(name: String, artistIds: List<ArtistId>, songIds: List<SongId>): Future<Album>
 
     // User content
 

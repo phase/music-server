@@ -1,6 +1,7 @@
 package io.jadon.music.db
 
 import io.jadon.music.MusicServer
+import io.jadon.music.fs.UnprocessedSong
 import io.jadon.music.model.*
 import org.mindrot.jbcrypt.BCrypt
 import io.vertx.core.Future
@@ -83,14 +84,13 @@ class DummyDatabase : Database {
         return future
     }
 
-    override fun searchSongs(name: String): Future<List<SongId>> {
-        val future = Future.future<List<SongId>>()
-        executor.executeBlocking<List<SongId>>({
-            val songIds = songs
+    override fun searchSongs(name: String): Future<List<Song>> {
+        val future = Future.future<List<Song>>()
+        executor.executeBlocking<List<Song>>({
+            val songs = songs
                     .filter { it.name.contains(name, ignoreCase = true) }
-                    .mapNotNull { it.id }
-            it.complete(songIds)
-            future.complete(songIds)
+            it.complete(songs)
+            future.complete(songs)
         }, {})
         return future
     }
@@ -105,14 +105,13 @@ class DummyDatabase : Database {
         return future
     }
 
-    override fun searchArtists(name: String): Future<List<ArtistId>> {
-        val future = Future.future<List<ArtistId>>()
-        executor.executeBlocking<List<ArtistId>>({
-            val artistIds = artists
+    override fun searchArtists(name: String): Future<List<Artist>> {
+        val future = Future.future<List<Artist>>()
+        executor.executeBlocking<List<Artist>>({
+            val artists = artists
                     .filter { it.name.contains(name, ignoreCase = true) }
-                    .mapNotNull { it.id }
-            it.complete(artistIds)
-            future.complete(artistIds)
+            it.complete(artists)
+            future.complete(artists)
         }, {})
         return future
     }
@@ -127,14 +126,13 @@ class DummyDatabase : Database {
         return future
     }
 
-    override fun searchAlbums(name: String): Future<List<AlbumId>> {
-        val future = Future.future<List<AlbumId>>()
-        executor.executeBlocking<List<AlbumId>>({
-            val albumIds = albums
+    override fun searchAlbums(name: String): Future<List<Album>> {
+        val future = Future.future<List<Album>>()
+        executor.executeBlocking<List<Album>>({
+            val albums = albums
                     .filter { it.name.contains(name, ignoreCase = true) }
-                    .mapNotNull { it.id }
-            it.complete(albumIds)
-            future.complete(albumIds)
+            it.complete(albums)
+            future.complete(albums)
         }, {})
         return future
     }
@@ -180,6 +178,18 @@ class DummyDatabase : Database {
 
     override fun getRecentEntityCount(user: User): Future<Int> {
         return Future.succeededFuture(songs.size)
+    }
+
+    override fun addAlbum(name: String, artistIds: List<ArtistId>, songIds: List<SongId>): Future<Album> {
+        TODO("not implemented")
+    }
+
+    override fun addArtist(name: String): Future<Artist> {
+        TODO("not implemented")
+    }
+
+    override fun addSong(unprocessedSong: UnprocessedSong): Future<Song> {
+        TODO("not implemented")
     }
 
 }

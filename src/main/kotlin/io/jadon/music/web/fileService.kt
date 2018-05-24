@@ -1,6 +1,6 @@
 package io.jadon.music.web
 
-import io.jadon.music.fs.AbstractFileSystem
+import io.jadon.music.fs.FileSystem
 import io.jadon.music.model.SongId
 import io.vertx.core.buffer.Buffer
 import io.vertx.core.http.HttpMethod
@@ -8,7 +8,7 @@ import io.vertx.ext.web.Router
 
 object WebFileService {
 
-    fun init(router: Router, fileSystem: AbstractFileSystem) {
+    fun init(router: Router, fileSystem: FileSystem) {
         router.route(HttpMethod.GET, "/download/song/:id").handler { routingContext ->
             routingContext.response().putHeader("content-type", "application/octet-stream")
             routingContext.response().isChunked = true
