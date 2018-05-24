@@ -43,8 +43,10 @@ interface Database {
 
     fun getRecentEntityCount(user: User): Future<Int>
     fun getRecentEntity(user: User, offset: Int): Future<Entity?>
+    fun addRecentEntity(user: User, entity: Entity): Future<Void>
 
     fun getNewEntityCount(): Future<Int>
     fun getNewEntity(offset: Int): Future<Entity?>
+    fun addNewEntity(entity: Entity): Future<Void>
 
 }

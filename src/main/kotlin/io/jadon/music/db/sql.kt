@@ -12,6 +12,7 @@ import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.dao.IntIdTable
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.joda.time.DateTime
 import java.util.*
 
 internal enum class MusicEntityID(val id: Int) {
@@ -24,6 +25,15 @@ internal enum class MusicEntityID(val id: Int) {
                 1 -> ALBUM
                 2 -> PLAYLIST
                 else -> throw IllegalArgumentException("$id is not a MusicEntityID")
+            }
+        }
+
+        fun valueOf(entity: Entity): MusicEntityID {
+            return when (entity) {
+                is Song -> SONG
+                is Album -> ALBUM
+                is Playlist -> PLAYLIST
+                else -> throw IllegalArgumentException("$entity doesn't have a MusicEntityID")
             }
         }
     }
@@ -277,8 +287,17 @@ class PostgreSQLDatabase(
                                 this.isSingle = unprocessedSong.isSingle
                             }.asSong()
                         }
-                        o.complete(song)
-                        future.complete(song)
+
+                        // Singles are added to the new entity list
+                        if (song.isSingle) {
+                            addNewEntity(song).setHandler {
+                                o.complete(song)
+                                future.complete(song)
+                            }
+                        } else {
+                            o.complete(song)
+                            future.complete(song)
+                        }
                     }
                 }
             }
@@ -520,6 +539,61 @@ class PostgreSQLDatabase(
             }
             it.complete(result)
             future.complete(result)
+        }, {})
+        return future
+    }
+
+    override fun addNewEntity(entity: Entity): Future<Void> {
+        val future = Future.future<Void>()
+        executor.executeBlocking<Void>({
+            transaction {
+                NewEntityRow.new {
+                    // this could be better
+                    when (entity) {
+                        is Song -> {
+                            this.entityId = entity.id!!
+                        }
+                        is Album -> {
+                            this.entityId = entity.id!!
+                        }
+                        is Playlist -> {
+                            this.entityId = entity.id!!
+                        }
+                    }
+                    this.typeId = MusicEntityID.valueOf(entity).id
+                    this.time = DateTime.now()
+                }
+            }
+            it.complete()
+            future.complete()
+        }, {})
+        return future
+    }
+
+    override fun addRecentEntity(user: User, entity: Entity): Future<Void> {
+        val future = Future.future<Void>()
+        executor.executeBlocking<Void>({
+            transaction {
+                RecentEntityRow.new {
+                    // this could be better
+                    when (entity) {
+                        is Song -> {
+                            this.entityId = entity.id!!
+                        }
+                        is Album -> {
+                            this.entityId = entity.id!!
+                        }
+                        is Playlist -> {
+                            this.entityId = entity.id!!
+                        }
+                    }
+                    this.typeId = MusicEntityID.valueOf(entity).id
+                    this.time = DateTime.now()
+                    this.userId = user.id!!
+                }
+            }
+            it.complete()
+            future.complete()
         }, {})
         return future
     }

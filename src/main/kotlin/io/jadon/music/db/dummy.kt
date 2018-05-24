@@ -192,4 +192,12 @@ class DummyDatabase : Database {
         TODO("not implemented")
     }
 
+    override fun addNewEntity(entity: Entity): Future<Void> {
+        TODO("not implemented")
+    }
+
+    override fun addRecentEntity(user: User, entity: Entity): Future<Void> {
+        TODO("not implemented")
+    }
+
 }
