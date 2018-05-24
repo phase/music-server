@@ -37,7 +37,8 @@ typealias PlaylistId = Int
 data class Song(
         val id: SongId?,
         val name: String,
-        val artistIds: List<ArtistId>
+        val artistIds: List<ArtistId>,
+        val isSingle: Boolean
 ) : Entity
 
 data class Artist(

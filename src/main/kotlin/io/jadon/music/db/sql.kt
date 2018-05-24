@@ -34,6 +34,7 @@ internal enum class MusicEntityID(val id: Int) {
 object SongTable : IntIdTable() {
     val name = varchar("name", 64)
     val artistIds = text("artist_ids")
+    val isSingle = bool("is_single")
 }
 
 object ArtistTable : IntIdTable() {
@@ -81,9 +82,10 @@ class SongRow(id: EntityID<Int>) : IntEntity(id) {
             { a -> a.joinToString(":") },
             { s -> s.split(":").mapNotNull { it.toIntOrNull() } }
     )
+    var isSingle by SongTable.isSingle
 
     fun asSong(): Song {
-        return Song(id.value, name, artistIds)
+        return Song(id.value, name, artistIds, isSingle)
     }
 }
 
@@ -250,14 +252,14 @@ class PostgreSQLDatabase(
                     // search for artists already in the db
                     searchArtists(artistName).compose { Future.succeededFuture(Pair(i, it)) }
                 }).setHandler {
-                    val results = it.result().list<Pair<Int, List<ArtistId>>>().toMap()
+                    val results = it.result().list<Pair<Int, List<Artist>>>().toMap()
                     // get the final list of artist ids
                     CompositeFuture.all(unprocessedSong.artists.mapIndexed { i, artistName ->
                         val artistIdFuture = Future.future<ArtistId>()
                         val possibleArtists = results[i]
                         if (possibleArtists != null && possibleArtists.isNotEmpty()) {
                             // there is an artist already in the db
-                            artistIdFuture.complete(possibleArtists[0])
+                            artistIdFuture.complete(possibleArtists[0].id)
                         } else {
                             // we need to make a new artist in the db
                             addArtist(artistName).setHandler {
@@ -270,8 +272,9 @@ class PostgreSQLDatabase(
                         val finalArtistIds = it.result().list<ArtistId>()
                         val song = transaction {
                             SongRow.new {
-                                name = unprocessedSong.name!!
-                                artistIds = finalArtistIds
+                                this.name = unprocessedSong.name!!
+                                this.artistIds = finalArtistIds
+                                this.isSingle = unprocessedSong.isSingle
                             }.asSong()
                         }
                         o.complete(song)

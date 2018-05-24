@@ -14,7 +14,7 @@ class FileSystem(directoryPath: String) {
     })
 
     private fun readFile(file: File): ByteArray? {
-        println("FS: Reading file: ${file.absolutePath}")
+        println("[FS] Reading file: ${file.absolutePath}")
         return try {
             MusicServer.vertx.fileSystem().readFileBlocking(file.absolutePath).byteBuf.array()
         } catch (e: Exception) {
@@ -24,7 +24,7 @@ class FileSystem(directoryPath: String) {
     }
 
     private fun writeFile(file: File, byteArray: ByteArray) {
-        println("FS: Writing File: ${file.absoluteFile} (${byteArray.size})")
+        println("[FS] Writing File: ${file.absoluteFile} (${byteArray.size})")
         try {
             MusicServer.vertx.fileSystem().writeFile(file.absolutePath, Buffer.buffer(byteArray)) {}
         } catch (e: Exception) {
@@ -53,19 +53,19 @@ class FileSystem(directoryPath: String) {
 
     fun addSong(unprocessedSong: UnprocessedSong, id: SongId) {
         writeFile(directory.resolve("indexed/" + id.toString() + ".mp3"), unprocessedSong.songBytes)
-        if (unprocessedSong.imageBytes != null && unprocessedSong.imageBytes.isNotEmpty()) {
+        if (unprocessedSong.isSingle && unprocessedSong.imageBytes != null && unprocessedSong.imageBytes.isNotEmpty()) {
             writeFile(directory.resolve("artwork/song/" + id.toString() + ".jpg"), unprocessedSong.imageBytes)
         }
     }
 
 }
 
-class UnprocessedSong(val songBytes: ByteArray, val imageBytes: ByteArray?) {
+class UnprocessedSong(val songBytes: ByteArray, val imageBytes: ByteArray?, val isSingle: Boolean) {
     var name: String? = null
     var artists: List<String> = mutableListOf()
 
-    constructor(songBytes: ByteArray, imageBytes: ByteArray?, name: String, artists: List<String>)
-            : this(songBytes, imageBytes) {
+    constructor(songBytes: ByteArray, imageBytes: ByteArray?, isSingle: Boolean, name: String, artists: List<String>)
+            : this(songBytes, imageBytes, isSingle) {
         this.name = name
         this.artists = artists
     }

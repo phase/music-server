@@ -28,7 +28,7 @@ class DummyDatabase : Database {
         artists.addAll((0..10).map { Artist(it, generateName(1)) })
         songs.addAll(
                 artists.subList(0, artists.size - 2).mapIndexed { index, _ ->
-                    Song(index, generateName(), listOf(index, index + 1))
+                    Song(index, generateName(), listOf(index, index + 1), false)
                 }
         )
 

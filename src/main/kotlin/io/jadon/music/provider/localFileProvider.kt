@@ -44,7 +44,7 @@ class LocalFileProvider(directoryPath: String, fileSystem: FileSystem, database:
                             print("Artists (separated by '|'): ")
                             artists = readLine().orEmpty().split("|").toMutableList()
                         }
-                        val unprocessedSong = UnprocessedSong(songBytes, imageBytes, name, artists)
+                        val unprocessedSong = UnprocessedSong(songBytes, imageBytes, true, name, artists)
                         addSong(unprocessedSong).setHandler {
                             file.delete()
                         }
