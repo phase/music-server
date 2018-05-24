@@ -6,27 +6,19 @@ import io.jadon.kvt.model.PlaylistId
 import io.jadon.kvt.model.SongId
 import java.io.File
 
-interface AbstractFileSystem {
+abstract class AbstractFileSystem {
 
-    fun getSongBytes(id: SongId): ByteArray?
+    abstract fun getSongBytes(id: SongId): ByteArray?
 
     // Artwork
 
-    fun getSongArtworkBytes(id: SongId): ByteArray?
+    abstract fun getSongArtworkBytes(id: SongId): ByteArray?
 
-    fun getAlbumArtworkBytes(id: AlbumId): ByteArray?
+    abstract fun getAlbumArtworkBytes(id: AlbumId): ByteArray?
 
-    fun getPlaylistArtworkBytes(id: PlaylistId): ByteArray?
+    abstract fun getPlaylistArtworkBytes(id: PlaylistId): ByteArray?
 
-}
-
-class DiskFileSystem(directoryPath: String) : AbstractFileSystem {
-
-    private val directory = File(directoryPath.let {
-        if (it.endsWith("/")) it else it + "/"
-    })
-
-    private fun readFile(file: File): ByteArray? {
+    fun readFile(file: File): ByteArray? {
         println("Reading file: ${file.absolutePath}")
         return try {
             Kvt.VERTX.fileSystem().readFileBlocking(file.absolutePath).byteBuf.array()
@@ -34,6 +26,14 @@ class DiskFileSystem(directoryPath: String) : AbstractFileSystem {
             null
         }
     }
+}
+
+class DiskFileSystem(directoryPath: String) : AbstractFileSystem() {
+
+    private val directory = File(directoryPath.let {
+        if (it.endsWith("/")) it else it + "/"
+    })
+
 
     private val temp by lazy { readFile(directory.resolve("artwork/test.jpg")) }
 
