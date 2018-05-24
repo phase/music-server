@@ -1,9 +1,9 @@
-package io.jadon.kvt.fs
+package io.jadon.music.fs
 
-import io.jadon.kvt.MusicServer
-import io.jadon.kvt.model.AlbumId
-import io.jadon.kvt.model.PlaylistId
-import io.jadon.kvt.model.SongId
+import io.jadon.music.MusicServer
+import io.jadon.music.model.AlbumId
+import io.jadon.music.model.PlaylistId
+import io.jadon.music.model.SongId
 import java.io.File
 
 abstract class AbstractFileSystem {
@@ -31,7 +31,7 @@ abstract class AbstractFileSystem {
 class DiskFileSystem(directoryPath: String) : AbstractFileSystem() {
 
     private val directory = File(directoryPath.let {
-        if (it.endsWith("/")) it else it + "/"
+        if (it.endsWith("/")) it else "$it/"
     })
 
 

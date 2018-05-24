@@ -1,10 +1,10 @@
-package io.jadon.kvt.web.rest
+package io.jadon.music.web.rest
 
-import io.jadon.kvt.MusicServer
-import io.jadon.kvt.model.AlbumId
-import io.jadon.kvt.model.ArtistId
-import io.jadon.kvt.model.Entity
-import io.jadon.kvt.model.SongId
+import io.jadon.music.MusicServer
+import io.jadon.music.model.AlbumId
+import io.jadon.music.model.ArtistId
+import io.jadon.music.model.Entity
+import io.jadon.music.model.SongId
 import io.vertx.core.CompositeFuture
 import io.vertx.core.Future
 import io.vertx.core.http.HttpMethod

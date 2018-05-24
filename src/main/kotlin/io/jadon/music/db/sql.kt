@@ -1,13 +1,14 @@
-package io.jadon.kvt.db
+package io.jadon.music.db
 
-import io.jadon.kvt.MusicServer
-import io.jadon.kvt.model.*
+import io.jadon.music.MusicServer
+import io.jadon.music.model.*
 import io.vertx.core.Future
 import io.vertx.core.WorkerExecutor
 import org.jetbrains.exposed.dao.EntityID
 import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.dao.IntIdTable
+import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.util.*
 
@@ -177,8 +178,26 @@ class PostgreSQLDatabase(
     private val executor: WorkerExecutor by lazy { MusicServer.vertx.createSharedWorkerExecutor("sql_db", 4) }
 
     init {
-        val connectionString = "jdbc:postgresql://$host:$port/$database?user=$user&password=$password"
-        org.jetbrains.exposed.sql.Database.connect(connectionString, driver = "org.postgresql.Driver")
+        val connectionString = "jdbc:postgresql://$host:$port/$database" +
+                "?useUnicode=true" +
+                "&useJDBCCompliantTimezoneShift=true" +
+                "&useLegacyDatetimeCode=false" +
+                "&serverTimezone=UTC" +
+                "&nullNamePatternMatchesAll=true" +
+                "&useSSL=false"
+        org.jetbrains.exposed.sql.Database.connect(connectionString, driver = "org.postgresql.Driver",
+                user = user, password = password)
+
+        transaction {
+            listOf(
+                    SongTable,
+                    ArtistTable,
+                    PlaylistTable,
+                    UserTable,
+                    RecentEntityTable,
+                    NewEntityTable
+            ).forEach { SchemaUtils.create(it) }
+        }
     }
 
     // Song functions

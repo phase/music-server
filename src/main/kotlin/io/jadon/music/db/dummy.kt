@@ -1,7 +1,7 @@
-package io.jadon.kvt.db
+package io.jadon.music.db
 
-import io.jadon.kvt.MusicServer
-import io.jadon.kvt.model.*
+import io.jadon.music.MusicServer
+import io.jadon.music.model.*
 import org.mindrot.jbcrypt.BCrypt
 import io.vertx.core.Future
 import io.vertx.core.WorkerExecutor

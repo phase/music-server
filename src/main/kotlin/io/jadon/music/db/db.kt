@@ -1,6 +1,6 @@
-package io.jadon.kvt.db
+package io.jadon.music.db
 
-import io.jadon.kvt.model.*
+import io.jadon.music.model.*
 import io.vertx.core.Future
 
 typealias Token = String

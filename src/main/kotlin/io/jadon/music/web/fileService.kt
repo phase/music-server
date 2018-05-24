@@ -1,7 +1,7 @@
-package io.jadon.kvt.web
+package io.jadon.music.web
 
-import io.jadon.kvt.fs.AbstractFileSystem
-import io.jadon.kvt.model.SongId
+import io.jadon.music.fs.AbstractFileSystem
+import io.jadon.music.model.SongId
 import io.vertx.core.buffer.Buffer
 import io.vertx.core.http.HttpMethod
 import io.vertx.ext.web.Router

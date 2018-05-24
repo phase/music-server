@@ -48,3 +48,4 @@ fabric.properties
 hs_err_pid*
 .gradle/
 *.iml
+src/main/resources/config.json

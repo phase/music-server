@@ -1,4 +1,4 @@
-package io.jadon.kvt.model
+package io.jadon.music.model
 
 interface Entity
 
