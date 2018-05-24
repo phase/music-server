@@ -1,6 +1,6 @@
 package io.jadon.kvt.db
 
-import io.jadon.kvt.Kvt
+import io.jadon.kvt.MusicServer
 import io.jadon.kvt.model.*
 import io.vertx.core.Future
 import io.vertx.core.WorkerExecutor
@@ -9,6 +9,22 @@ import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.dao.IntIdTable
 import org.jetbrains.exposed.sql.transactions.transaction
+import java.util.*
+
+internal enum class MusicEntityID(val id: Int) {
+    SONG(0), ALBUM(1), PLAYLIST(2);
+
+    companion object {
+        fun valueOf(id: Int): MusicEntityID {
+            return when (id) {
+                0 -> SONG
+                1 -> ALBUM
+                2 -> PLAYLIST
+                else -> throw IllegalArgumentException("$id is not a MusicEntityID")
+            }
+        }
+    }
+}
 
 // tables
 
@@ -36,6 +52,20 @@ object PlaylistTable : IntIdTable() {
 object UserTable : IntIdTable() {
     val name = varchar("name", 64)
     val passwordHash = varchar("password_hash", 64)
+    val token = varchar("token", 128)
+}
+
+object RecentEntityTable : IntIdTable() {
+    val userId = integer("user_id")
+    val time = datetime("timestamp")
+    val type = integer("type")
+    val entityId = integer("entity_id")
+}
+
+object NewEntityTable : IntIdTable() {
+    val time = datetime("timestamp")
+    val type = integer("type")
+    val entityId = integer("entity_id")
 }
 
 // objects
@@ -43,16 +73,11 @@ object UserTable : IntIdTable() {
 class SongRow(id: EntityID<Int>) : IntEntity(id) {
     companion object : IntEntityClass<SongRow>(SongTable)
 
-    private var _name = SongTable.name
-    val name: String
-        get() = readValues[_name]
-
-    private var _artistIds = SongTable.artistIds.transform(
+    var name by SongTable.name
+    var artistIds by SongTable.artistIds.transform(
             { a -> a.joinToString(":") },
             { s -> s.split(":").mapNotNull { it.toIntOrNull() } }
     )
-    val artistIds: List<Int>
-        get() = _artistIds.toReal(readValues[_artistIds.column])
 
     fun asSong(): Song {
         return Song(id.value, name, artistIds)
@@ -62,9 +87,7 @@ class SongRow(id: EntityID<Int>) : IntEntity(id) {
 class ArtistRow(id: EntityID<Int>) : IntEntity(id) {
     companion object : IntEntityClass<ArtistRow>(ArtistTable)
 
-    private var _name = ArtistTable.name
-    val name: String
-        get() = readValues[_name]
+    var name by ArtistTable.name
 
     fun asArtist(): Artist {
         return Artist(id.value, name)
@@ -74,23 +97,15 @@ class ArtistRow(id: EntityID<Int>) : IntEntity(id) {
 class AlbumRow(id: EntityID<Int>) : IntEntity(id) {
     companion object : IntEntityClass<AlbumRow>(AlbumTable)
 
-    private var _name = AlbumTable.name
-    val name: String
-        get() = readValues[_name]
-
-    private var _artistIds = AlbumTable.artistIds.transform(
+    var name by AlbumTable.name
+    var artistIds by AlbumTable.artistIds.transform(
             { a -> a.joinToString(":") },
             { s -> s.split(":").mapNotNull { it.toIntOrNull() } }
     )
-    val artistIds: List<Int>
-        get() = _artistIds.toReal(readValues[_artistIds.column])
-
-    private var _songIds = AlbumTable.songIds.transform(
+    var songIds by AlbumTable.songIds.transform(
             { a -> a.joinToString(":") },
             { s -> s.split(":").mapNotNull { it.toIntOrNull() } }
     )
-    val songIds: List<Int>
-        get() = _songIds.toReal(readValues[_songIds.column])
 
     fun asAlbum(): Album {
         return Album(id.value, name, artistIds, songIds)
@@ -100,20 +115,12 @@ class AlbumRow(id: EntityID<Int>) : IntEntity(id) {
 class PlaylistRow(id: EntityID<Int>) : IntEntity(id) {
     companion object : IntEntityClass<PlaylistRow>(PlaylistTable)
 
-    private var _name = PlaylistTable.name
-    val name: String
-        get() = readValues[_name]
-
-    private var _userId = PlaylistTable.userId
-    val userId: Int
-        get() = readValues[_userId]
-
-    private var _songIds = PlaylistTable.songIds.transform(
+    var name by PlaylistTable.name
+    var userId by PlaylistTable.userId
+    var songIds by PlaylistTable.songIds.transform(
             { a -> a.joinToString(":") },
             { s -> s.split(":").mapNotNull { it.toIntOrNull() } }
     )
-    val songIds: List<Int>
-        get() = _songIds.toReal(readValues[_songIds.column])
 
     fun asPlaylist(): Playlist {
         return Playlist(id.value, name, userId, songIds)
@@ -123,16 +130,37 @@ class PlaylistRow(id: EntityID<Int>) : IntEntity(id) {
 class UserRow(id: EntityID<Int>) : IntEntity(id) {
     companion object : IntEntityClass<UserRow>(UserTable)
 
-    private var _name = UserTable.name
-    val name: String
-        get() = readValues[_name]
-
-    private var _passwordHash = UserTable.passwordHash
-    val passwordHash: String
-        get() = readValues[_passwordHash]
+    var name by UserTable.name
+    var passwordHash by UserTable.passwordHash
+    var token by UserTable.token
 
     fun asUser(): User {
         return User(id.value, name, passwordHash)
+    }
+}
+
+class RecentEntityRow(id: EntityID<Int>) : IntEntity(id) {
+    companion object : IntEntityClass<RecentEntityRow>(RecentEntityTable)
+
+    var userId by RecentEntityTable.userId
+    var time by RecentEntityTable.time
+    var typeId by RecentEntityTable.type
+    var entityId by RecentEntityTable.entityId
+
+    internal fun getType(): MusicEntityID {
+        return MusicEntityID.valueOf(typeId)
+    }
+}
+
+class NewEntityRow(id: EntityID<Int>) : IntEntity(id) {
+    companion object : IntEntityClass<NewEntityRow>(NewEntityTable)
+
+    var time by NewEntityTable.time
+    var typeId by NewEntityTable.type
+    var entityId by NewEntityTable.entityId
+
+    internal fun getType(): MusicEntityID {
+        return MusicEntityID.valueOf(typeId)
     }
 }
 
@@ -146,7 +174,7 @@ class PostgreSQLDatabase(
         password: String
 ) : Database {
 
-    private val executor: WorkerExecutor by lazy { Kvt.VERTX.createSharedWorkerExecutor("sql_db", 4) }
+    private val executor: WorkerExecutor by lazy { MusicServer.vertx.createSharedWorkerExecutor("sql_db", 4) }
 
     init {
         val connectionString = "jdbc:postgresql://$host:$port/$database?user=$user&password=$password"
@@ -281,31 +309,104 @@ class PostgreSQLDatabase(
      * Remove last token and generate a new one
      */
     override fun loginUser(user: User): Future<Token> {
-        TODO("not implemented")
+        val future = Future.future<Token>()
+        executor.executeBlocking<Token>({
+            val token = UUID.randomUUID().toString()
+            transaction {
+                UserRow.findById(user.id!!)!!.token = token
+            }
+            it.complete(token)
+            future.complete(token)
+        }, {})
+        return future
     }
 
     override fun isValidToken(token: String): Future<Boolean> {
-        TODO("not implemented")
+        val future = Future.future<Boolean>()
+        executor.executeBlocking<Boolean>({
+            val result = transaction {
+                UserRow.find { UserTable.token eq token }.limit(1).count() > 0
+            }
+            it.complete(result)
+            future.complete(result)
+        }, {})
+        return future
     }
 
     override fun getUser(token: String): Future<User?> {
-        TODO("not implemented")
+        val future = Future.future<User?>()
+        executor.executeBlocking<User?>({
+            val result = transaction {
+                UserRow.find { UserTable.token eq token }.limit(1).firstOrNull()?.asUser()
+            }
+            it.complete(result)
+            future.complete(result)
+        }, {})
+        return future
     }
 
-    override fun getNewEntity(user: User, offset: Int): Future<Entity?> {
-        TODO("not implemented")
+    override fun getNewEntity(offset: Int): Future<Entity?> {
+        val future = Future.future<Entity?>()
+        executor.executeBlocking<Entity?>({ o ->
+            val result = transaction {
+                val entity = NewEntityRow.all().sortedBy { it.time }[offset]
+                when (entity.getType()) {
+                    MusicEntityID.SONG -> getSong(entity.entityId)
+                    MusicEntityID.ALBUM -> getAlbum(entity.entityId)
+                    MusicEntityID.PLAYLIST -> getPlaylist(entity.entityId)
+                }
+            }
+            result.setHandler {
+                val r = it.result()
+                o.complete(r)
+                future.complete(r)
+            }
+        }, {})
+        return future
     }
 
     override fun getRecentEntity(user: User, offset: Int): Future<Entity?> {
-        TODO("not implemented")
+        val future = Future.future<Entity?>()
+        executor.executeBlocking<Entity?>({ o ->
+            val result = transaction {
+                val entity = RecentEntityRow.all().filter { it.userId == user.id }.sortedBy { it.time }[offset]
+                when (entity.getType()) {
+                    MusicEntityID.SONG -> getSong(entity.entityId)
+                    MusicEntityID.ALBUM -> getAlbum(entity.entityId)
+                    MusicEntityID.PLAYLIST -> getPlaylist(entity.entityId)
+                }
+            }
+            result.setHandler {
+                val r = it.result()
+                o.complete(r)
+                future.complete(r)
+            }
+        }, {})
+        return future
     }
 
-    override fun getNewEntityCount(user: User): Future<Int> {
-        TODO("not implemented")
+    override fun getNewEntityCount(): Future<Int> {
+        val future = Future.future<Int>()
+        executor.executeBlocking<Int>({
+            val result = transaction {
+                Math.max(100, NewEntityRow.all().count())
+            }
+            it.complete(result)
+            future.complete(result)
+        }, {})
+        return future
     }
 
     override fun getRecentEntityCount(user: User): Future<Int> {
-        TODO("not implemented")
+        val future = Future.future<Int>()
+        executor.executeBlocking<Int>({
+            val result = transaction {
+                Math.max(100, RecentEntityRow.all().filter { it.userId == user.id }.count())
+            }
+            it.complete(result)
+            future.complete(result)
+        }, {})
+        return future
     }
 
 }

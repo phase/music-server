@@ -1,6 +1,6 @@
 package io.jadon.kvt.fs
 
-import io.jadon.kvt.Kvt
+import io.jadon.kvt.MusicServer
 import io.jadon.kvt.model.AlbumId
 import io.jadon.kvt.model.PlaylistId
 import io.jadon.kvt.model.SongId
@@ -21,7 +21,7 @@ abstract class AbstractFileSystem {
     fun readFile(file: File): ByteArray? {
         println("Reading file: ${file.absolutePath}")
         return try {
-            Kvt.VERTX.fileSystem().readFileBlocking(file.absolutePath).byteBuf.array()
+            MusicServer.vertx.fileSystem().readFileBlocking(file.absolutePath).byteBuf.array()
         } catch (e: Exception) {
             null
         }

@@ -10,27 +10,27 @@ import io.vertx.core.Vertx
 import io.vertx.core.http.HttpServer
 import io.vertx.ext.web.Router
 
-object Kvt {
+object MusicServer {
 
-    lateinit var FS: AbstractFileSystem
-    lateinit var DB: Database
-    lateinit var VERTX: Vertx
-    lateinit var SERVER: HttpServer
+    lateinit var fileSystem: AbstractFileSystem
+    lateinit var database: Database
+    lateinit var vertx: Vertx
+    lateinit var webServer: HttpServer
 
     @JvmStatic
     fun main(args: Array<String>) {
-        FS = DiskFileSystem("D:/music/")
-        DB = DummyDatabase()
-        VERTX = Vertx.vertx()
-        val router = Router.router(VERTX)
+        fileSystem = DiskFileSystem("D:/music/")
+        database = DummyDatabase()
+        vertx = Vertx.vertx()
+        val router = Router.router(vertx)
 
         RestApiV1.init(router)
-        WebFileService.init(router, FS)
+        WebFileService.init(router, fileSystem)
 
-        SERVER = VERTX.createHttpServer()
+        webServer = vertx.createHttpServer()
         val port = 2345
-        SERVER.requestHandler(router::accept)
-        SERVER.listen(port)
+        webServer.requestHandler(router::accept)
+        webServer.listen(port)
         println("Server started @ http://localhost:$port")
     }
 
