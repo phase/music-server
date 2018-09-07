@@ -523,7 +523,7 @@ class PostgreSQLDatabase(
         val future = Future.future<Int>()
         executor.executeBlocking<Int>({
             val result = transaction {
-                Math.max(100, NewEntityRow.all().count())
+                Math.min(100, NewEntityRow.all().count())
             }
             it.complete(result)
             future.complete(result)
@@ -535,7 +535,7 @@ class PostgreSQLDatabase(
         val future = Future.future<Int>()
         executor.executeBlocking<Int>({
             val result = transaction {
-                Math.max(100, RecentEntityRow.all().filter { it.userId == user.id }.count())
+                Math.min(100, RecentEntityRow.all().filter { it.userId == user.id }.count())
             }
             it.complete(result)
             future.complete(result)

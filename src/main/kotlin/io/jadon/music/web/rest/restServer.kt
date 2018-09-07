@@ -209,6 +209,7 @@ object RestApiV1 : RestApi(1) {
 
     @Path("/new/:offset")
     fun new(token: String?, offset: Int): Future<JsonObject> {
+        println("NEW $offset $token")
         if (token == null) {
             return Future.succeededFuture(errorJson("invalid token"))
         }
@@ -229,6 +230,7 @@ object RestApiV1 : RestApi(1) {
 
     @Path("/recent/:offset")
     fun recent(token: String?, offset: Int): Future<JsonObject> {
+        println("RECENT $offset $token")
         if (token == null) {
             return Future.succeededFuture(errorJson("invalid token"))
         }
